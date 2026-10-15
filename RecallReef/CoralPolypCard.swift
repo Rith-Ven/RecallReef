@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct CoralPolypCard: View {
-    let polyp: CoralPolyp
-    @Binding var nextStep: String
+    @Binding var polyp: CoralPolyp
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -19,9 +18,9 @@ struct CoralPolypCard: View {
                 .font(.title2)
                 .fontWeight(.semibold)
             Text(polyp.stoppingPoint)
-            Text("Next step: \(nextStep)")
+            Text("Next step: \(polyp.nextStep)")
                 .foregroundStyle(.secondary)
-            TextField("What is your next step?", text: $nextStep)
+            TextField("What is your next step?", text: $polyp.nextStep)
                 .textFieldStyle(.roundedBorder)
         }
         .padding()
