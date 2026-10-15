@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var isPolypVisible = true
+    @State private var isPolypVisible = false
+    @State private var isPolypSaved = false
     
     @State private var polyp = CoralPolyp(
         taskTitle: "Study C pointers",
@@ -38,22 +39,37 @@ struct ContentView: View {
             .buttonStyle(.borderedProminent)
             .tint(.teal)
             
-            Button("Save polyp") {
-                savePolyp()
+            if isPolypVisible {
+                Button("Save polyp") {
+                    savePolyp()
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
+            if isPolypSaved {
+                Label("Polyp saved", systemImage: "checkmark.circle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.green)
+            }
             
         }
         .padding()
         .onAppear {
             loadPolyp()
         }
+        .onChange(of: polyp.taskTitle) {
+            isPolypSaved = false
+        }
+        .onChange(of: polp.nextStep) {
+            isPolypSaved = false
+        }
     }
     private func savePolyp(){
         do {
             let encodedPolyp = try JSONEncoder().encode(polyp)
             savedPolypData = encodedPolyp
+            isPolypSaved = true
         } catch {
+            isPolypSaved = false
             print("Could not save polyp: \(error)")
         }
     }
