@@ -9,7 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var isPolypVisible = true
-    @State private var nextStep = "Trace how the array changes inside createArr."
+    @AppStorage("nextStep") // name in persistent storage (local persistence on the device)
+    private var nextStep = "Trace how the array changes inside createArr." // name used in swift code
     var body: some View {
         VStack {
             Image(systemName: "globe")
