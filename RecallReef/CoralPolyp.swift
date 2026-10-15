@@ -7,7 +7,10 @@
 
 import Foundation
 
-struct CoralPolyp{
+// Codable is a protocol - a set of requirements a type agrees to support
+// Encodable (converting into JSON) and decodable (creating from saved data)
+
+struct CoralPolyp: Codable{
     var taskTitle: String
     var stoppingPoint: String
     var nextStep: String

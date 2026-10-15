@@ -17,6 +17,8 @@ struct CoralPolypCard: View {
             Text(polyp.taskTitle)
                 .font(.title2)
                 .fontWeight(.semibold)
+            TextField("Task title", text: $polyp.taskTitle)
+                .textFieldStyle(.roundedBorder)
             Text(polyp.stoppingPoint)
             Text("Next step: \(polyp.nextStep)")
                 .foregroundStyle(.secondary)
