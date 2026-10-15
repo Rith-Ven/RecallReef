@@ -1,0 +1,31 @@
+//
+//  CoralPolypCard.swift
+//  RecallReef
+//
+//  Created by Rithanya Venkatesh on 10/15/26.
+//
+
+import SwiftUI
+
+struct CoralPolypCard: View {
+    let polyp: CoralPolyp
+    @Binding var nextStep: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Your last coral polyp")
+                .font(.headline)
+            Text(polyp.taskTitle)
+                .font(.title2)
+                .fontWeight(.semibold)
+            Text(polyp.stoppingPoint)
+            Text("Next step: \(nextStep)")
+                .foregroundStyle(.secondary)
+            TextField("What is your next step?", text: $nextStep)
+                .textFieldStyle(.roundedBorder)
+        }
+        .padding()
+        .background(Color.teal.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}

@@ -28,23 +28,10 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
             
             if isPolypVisible {
-                VStack(alignment: .leading, spacing: 8){
-                    Text("Your last coral polyp")
-                        .font(.headline)
-                    Text(examplePolyp.taskTitle)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    Text(examplePolyp.stoppingPoint)
-                    
-                    Text("Next: \(nextStep)")
-                        .foregroundStyle(.secondary)
-                    TextField("What is your next step?", text: $nextStep)
-                        .textFieldStyle(.roundedBorder)
-                }
-                .padding()
-                .background(Color.teal.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                CoralPolypCard(
+                    polyp: examplePolyp,
+                    nextStep: $nextStep
+                )
             }
             Button (isPolypVisible ? "Hide coral polyp" : "Show coral polyp") {
                 isPolypVisible.toggle( )
