@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var isPolypVisible = true
+    @State private var nextStep = "Trace how the array changes inside createArr."
     var body: some View {
         VStack {
             Image(systemName: "globe")
@@ -27,8 +28,10 @@ struct ContentView: View {
                     Text("Study C pointers")
                         .font(.title2)
                         .fontWeight(.semibold)
-                    Text("Next: trace how the array changes inside createArr.")
+                    Text("Next: \(nextStep)")
                         .foregroundStyle(.secondary)
+                    TextField("What is your next step?", text: $nextStep)
+                        .textFieldStyle(.roundedBorder)
                 }
                 .padding()
                 .background(Color.teal.opacity(0.12))
