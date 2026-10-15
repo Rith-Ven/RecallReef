@@ -13,7 +13,24 @@ struct ContentView: View {
             Image(systemName: "globe")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Text("Recall Reef")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            Text("Pick up where you left off.")
+                .foregroundStyle(.secondary)
+            
+            VStack(alignment: .leading, spacing: 8){
+                Text("Your last coral polyp")
+                    .font(.headline)
+                Text("Study C pointers")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                Text("Next: trace how the array changes inside createArr.")
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+            .background(Color.teal.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
         }
         .padding()
     }
