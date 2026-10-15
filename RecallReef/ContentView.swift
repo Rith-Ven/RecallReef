@@ -15,6 +15,8 @@ struct ContentView: View {
         stoppingPoint: "Finished tracing the function call.",
         nextStep: "Explain why the original array changes."
         )
+    @AppStorage("savedPolyp")
+    private var savedPolypData: Data = Data()
     var body: some View {
         VStack {
             Image(systemName: "globe")
@@ -29,14 +31,28 @@ struct ContentView: View {
             if isPolypVisible {
                 CoralPolypCard(polyp: $polyp)
             }
+            
             Button (isPolypVisible ? "Hide coral polyp" : "Show coral polyp") {
                 isPolypVisible.toggle( )
             }
             .buttonStyle(.borderedProminent)
             .tint(.teal)
             
+            Button("Save polyp") {
+                savePolyp()
+            }
+            .buttonStyle(.bordered)
+            
         }
         .padding()
+    }
+    private func savePolyp(){
+        do {
+            let encodedPolyp = try JSONEncoder().encode(polyp)
+            savedPolypData = encodedPolyp
+        } catch {
+            print("Could not save polyp: \(error)")
+        }
     }
 }
 
