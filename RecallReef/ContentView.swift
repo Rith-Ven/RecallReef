@@ -45,6 +45,9 @@ struct ContentView: View {
             
         }
         .padding()
+        .onAppear {
+            loadPolyp()
+        }
     }
     private func savePolyp(){
         do {
@@ -52,6 +55,20 @@ struct ContentView: View {
             savedPolypData = encodedPolyp
         } catch {
             print("Could not save polyp: \(error)")
+        }
+    }
+    private func loadPolyp(){
+        guard !savedPolypData.isEmpty else {
+            return
+        }
+        do {
+            let decodedPolyp = try JSONDecoder().decode(
+                CoralPolyp.self,
+                from: savedPolypData
+            )
+            polyp = decodedPolyp
+        } catch {
+            print("Could not load polyp: \(error)")
         }
     }
 }
