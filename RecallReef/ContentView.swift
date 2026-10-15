@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var isPolypVisible = false
     @State private var isPolypSaved = false
+    @State private var saveConfirmationTask: Task <Void, Never>? // stores an optional async task
     
     @State private var polyp = CoralPolyp(
         taskTitle: "Study C pointers",
@@ -49,6 +50,7 @@ struct ContentView: View {
                 Label("Polyp saved", systemImage: "checkmark.circle.fill")
                     .font(.footnote)
                     .foregroundStyle(.green)
+                    .transition(.opacity)
             }
             
         }
@@ -59,7 +61,7 @@ struct ContentView: View {
         .onChange(of: polyp.taskTitle) {
             isPolypSaved = false
         }
-        .onChange(of: polp.nextStep) {
+        .onChange(of: polyp.nextStep) {
             isPolypSaved = false
         }
     }
@@ -68,6 +70,15 @@ struct ContentView: View {
             let encodedPolyp = try JSONEncoder().encode(polyp)
             savedPolypData = encodedPolyp
             isPolypSaved = true
+            
+            saveConfirmationTask = Task { @MainActor in
+                do {
+                    try await Task.sleep(for: .seconds(2))
+                } catch { return }
+                withAnimation(.easeOut(duration: 0.4)) {
+                    isPolypSaved = false
+                }
+            }
         } catch {
             isPolypSaved = false
             print("Could not save polyp: \(error)")
