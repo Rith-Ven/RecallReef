@@ -13,13 +13,17 @@ struct FocusSessionView: View {
     
     @State private var remainingSeconds = 25 * 60
     
-    // Computed property
+    // Computed property to find mins and seconds
     private var formattedTime: String {
         let minutes = remainingSeconds / 60 // int div gives whole mins
         let seconds = remainingSeconds % 60 // remainder is leftover secs
 
         return String(format: "%02d:%02d", minutes, seconds)
     }
+    
+    @State private var isRunning = false
+    
+    
     
     var body: some View {
         VStack(spacing: 24) {
@@ -34,12 +38,49 @@ struct FocusSessionView: View {
                 .font(.system(size: 64, weight: .medium, design: .rounded))
                 .monospacedDigit()
             
+            
+            Button(isRunning ? "Pause" : "Start") {
+                isRunning.toggle()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.teal)
+            .disabled(remainingSeconds == 0)
+            
+            Button("Reset"){
+                isRunning = false
+                remainingSeconds = 25*60
+            }
+            .buttonStyle(.bordered)
+            
             Button("Close") {
                 dismiss()
             }
             .buttonStyle(.bordered)
         }
         .padding()
+        
+        .task(id: isRunning) {
+            guard isRunning else{
+                return
+            }
+            
+            while !Task.isCancelled && remainingSeconds > 0 {
+                do {
+                    try await Task.sleep(for: .seconds(1))
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled else {
+                    return
+                }
+                
+                remainingSeconds -= 1
+            }
+            if remainingSeconds == 0 {
+                isRunning = false
+            }
+        }
+        
     }
 }
 
