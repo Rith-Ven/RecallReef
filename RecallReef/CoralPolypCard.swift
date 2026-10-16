@@ -18,6 +18,12 @@ struct CoralPolypCard: View {
         nextStep: ""
     )
     
+    private var isDraftValid: Bool {
+        !draft.taskTitle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Coral polyp")
@@ -26,6 +32,11 @@ struct CoralPolypCard: View {
             if isEditing {
                 TextField("Task title", text: $draft.taskTitle)
                     .textFieldStyle(.roundedBorder)
+                if !isDraftValid {
+                    Text("Enter a task title.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
 
                 TextField("Where did you stop?", text: $draft.stoppingPoint)
                     .textFieldStyle(.roundedBorder)
@@ -51,9 +62,14 @@ struct CoralPolypCard: View {
                     }
 
                     Button("Apply changes") {
+                        draft.taskTitle = draft.taskTitle.trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+
                         polyp = draft
                         isEditing = false
                     }
+                    .disabled(!isDraftValid)
                 }
                 .buttonStyle(.bordered)
             } else {
