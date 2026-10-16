@@ -11,19 +11,26 @@ struct CoralPolypCard: View {
     @Binding var polyp: CoralPolyp
     @State private var isEditing = false
     
+    // Independent state owned by the card
+    @State private var draft = CoralPolyp(
+        taskTitle: "",
+        stoppingPoint: "",
+        nextStep: ""
+    )
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Coral polyp")
                 .font(.headline)
 
             if isEditing {
-                TextField("Task title", text: $polyp.taskTitle)
+                TextField("Task title", text: $draft.taskTitle)
                     .textFieldStyle(.roundedBorder)
 
-                TextField("Where did you stop?", text: $polyp.stoppingPoint)
+                TextField("Where did you stop?", text: $draft.stoppingPoint)
                     .textFieldStyle(.roundedBorder)
 
-                TextField("What is your next step?", text: $polyp.nextStep)
+                TextField("What is your next step?", text: $draft.nextStep)
                     .textFieldStyle(.roundedBorder)
             } else {
                 Text(polyp.taskTitle)
@@ -37,10 +44,25 @@ struct CoralPolypCard: View {
                     .foregroundStyle(.secondary)
             }
 
-            Button(isEditing ? "Done editing" : "Edit") {
-                isEditing.toggle()
+            if isEditing {
+                HStack {
+                    Button("Cancel") {
+                        isEditing = false
+                    }
+
+                    Button("Apply changes") {
+                        polyp = draft
+                        isEditing = false
+                    }
+                }
+                .buttonStyle(.bordered)
+            } else {
+                Button("Edit") {
+                    draft = polyp
+                    isEditing = true
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
         }
         .padding()
         .background(Color.teal.opacity(0.12))
