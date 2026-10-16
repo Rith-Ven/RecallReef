@@ -43,16 +43,31 @@ struct ContentView: View {
     // Prevent repeated loading
     @State private var hasLoadedPolyps = false
     
+    // Focus session timer
+    @State private var isShowingFocusSession = false
+    
+    
+    // ---------------------------------
     var body: some View {
         VStack {
             Image(systemName: "globe")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
+            
             Text("Recall Reef")
                 .font(.largeTitle)
                 .fontWeight(.bold)
+            
             Text("Pick up where you left off.")
                 .foregroundStyle(.secondary)
+            
+            
+            Button("Start a focus session") {
+                isShowingFocusSession = true
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.teal)
+            
             
             if isPolypVisible {
                 TextField("Search tasks", text: $searchText)
@@ -123,12 +138,18 @@ struct ContentView: View {
             }
         }
         .padding()
+        
         .sheet(isPresented: $isShowingNewPolyp) {
             NewPolypView { newPolyp in
                 polyps.append(newPolyp)
                 markAsChanged()
             }
         }
+        // To open and close the Focus Screen
+        .fullScreenCover(isPresented: $isShowingFocusSession) {
+            FocusSessionView()
+        }
+        
         .onAppear {
             guard !hasLoadedPolyps else{
                 return
