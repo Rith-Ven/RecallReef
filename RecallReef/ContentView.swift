@@ -20,6 +20,8 @@ struct ContentView: View {
     @AppStorage("savedPolyps")
     private var savedPolypsData: Data = Data()
     
+    @State private var isShowingNewPolyp = false
+    
     var body: some View {
         VStack {
             Image(systemName: "globe")
@@ -68,13 +70,7 @@ struct ContentView: View {
             
             if isPolypVisible {
                 Button("Add coral polyp") {
-                    let newPolyp = CoralPolyp(
-                        taskTitle: "New task",
-                        stoppingPoint: "",
-                        nextStep: ""
-                    )
-                    polyps.append(newPolyp)
-                    clearSaveConfirmation()
+                    isShowingNewPolyp = true
                 }
                 .buttonStyle(.bordered)
                 
@@ -91,8 +87,15 @@ struct ContentView: View {
             }
         }
         .padding()
+        .sheet(isPresented: $isShowingNewPolyp) {
+            NewPolypView { newPolyp in
+                polyps.append(newPolyp)
+                clearSaveConfirmation()
+            }
+        }
         .onAppear {
             loadPolyps()
+    
         }
     }
     
