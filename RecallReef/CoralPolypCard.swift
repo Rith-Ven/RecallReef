@@ -12,7 +12,7 @@ struct CoralPolypCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Your last coral polyp")
+            Text("Coral polyp")
                 .font(.headline)
             Text(polyp.taskTitle)
                 .font(.title2)
