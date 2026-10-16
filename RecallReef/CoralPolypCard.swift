@@ -20,6 +20,8 @@ struct CoralPolypCard: View {
             TextField("Task title", text: $polyp.taskTitle)
                 .textFieldStyle(.roundedBorder)
             Text(polyp.stoppingPoint)
+            TextField("Where did you stop?", text: $polyp.stoppingPoint)
+                .textFieldStyle(.roundedBorder)
             Text("Next step: \(polyp.nextStep)")
                 .foregroundStyle(.secondary)
             TextField("What is your next step?", text: $polyp.nextStep)
