@@ -46,6 +46,8 @@ struct ContentView: View {
     // Store selected polyp
     @State private var selectedFocusPolyp: CoralPolyp?
     
+    // Receive the record
+    @State private var focusSessions: [FocusSession] = []
     
     // ---------------------------------
     var body: some View {
@@ -61,6 +63,9 @@ struct ContentView: View {
             Text("Pick up where you left off.")
                 .foregroundStyle(.secondary)
             
+            Text("Recorded sessions: \(focusSessions.count)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         
             
             if isPolypVisible {
@@ -146,9 +151,20 @@ struct ContentView: View {
             }
         }
         // To open and close the Focus Screen
-        // optional nil -> no focus screen
+        // 
         .fullScreenCover(item: $selectedFocusPolyp) { polyp in
-            FocusSessionView(polyp: polyp)
+            FocusSessionView(polyp: polyp) { updatedPolyp, session in
+                if let index = polyps.firstIndex(where: {
+                    $0.id == updatedPolyp.id
+                }) {
+                    polyps[index] = updatedPolyp
+                    markAsChanged()
+                }
+
+                if let session {
+                    focusSessions.append(session)
+                }
+            }
         }
         
         .onAppear {

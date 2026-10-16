@@ -43,7 +43,8 @@ struct FocusSessionView: View {
     let polyp: CoralPolyp
     
     // Lets the parent receive the updated polyp + hold local draft notes
-    let onFinish: (CoralPolyp) -> Void
+    // Now accepts two values - updated polyp + optional session record
+    let onFinish: (CoralPolyp, FocusSession?) -> Void
 
     @State private var isFinishing = false
     @State private var stoppingPoint = ""
@@ -147,7 +148,23 @@ struct FocusSessionView: View {
                     updatedPolyp.stoppingPoint = stoppingPoint
                     updatedPolyp.nextStep = nextStep
 
-                    onFinish(updatedPolyp)
+                    let session: FocusSession?
+
+                    if let startedAt {
+                        session = FocusSession(
+                            polypID: polyp.id,
+                            taskTitle: polyp.taskTitle,
+                            startedAt: startedAt,
+                            focusedSeconds:
+                                // Converts measured duration to whole seconds 
+                                Int(accumulatedFocusSeconds),
+                            completedFullTimer: remainingSeconds == 0
+                        )
+                    } else {
+                        session = nil
+                    }
+
+                    onFinish(updatedPolyp, session)
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
@@ -239,5 +256,5 @@ struct FocusSessionView: View {
             stoppingPoint: "Practiced bindings.",
             nextStep: "Build a focus session."
         )
-    ) { _ in } // empty action bc screen requires onFinish, preview ignores the returned polyp
+    ) { _ , _ in } // empty action bc screen requires onFinish, preview ignores the returned polyp and session record
 }
