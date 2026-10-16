@@ -16,11 +16,15 @@ struct ContentView: View {
     
     @State private var polyps: [CoralPolyp] = []
     
+    // Storage properties
     @AppStorage("savedPolyp")
     private var savedPolypData: Data = Data()
     
     @AppStorage("savedPolyps")
     private var savedPolypsData: Data = Data()
+    
+    @AppStorage("savedFocusSessions")
+    private var savedFocusSessionsData: Data = Data()
     
     @State private var isShowingNewPolyp = false
     
@@ -41,7 +45,7 @@ struct ContentView: View {
     @State private var hasUnsavedChanges = false
     
     // Prevent repeated loading
-    @State private var hasLoadedPolyps = false
+    @State private var hasLoadedData = false
     
     // Store selected polyp
     @State private var selectedFocusPolyp: CoralPolyp?
@@ -163,16 +167,18 @@ struct ContentView: View {
 
                 if let session {
                     focusSessions.append(session)
+                    saveFocusSessions()
                 }
             }
         }
         
         .onAppear {
-            guard !hasLoadedPolyps else{
+            guard !hasLoadedData else{
                 return
             }
             loadPolyps()
-            hasLoadedPolyps = true
+            loadFocusSessions()
+            hasLoadedData = true
     
         }
         .alert(
@@ -259,6 +265,29 @@ struct ContentView: View {
             }
         } catch {
             print("Could not load polyps: \(error)")
+        }
+    }
+    // Uses same encoding/decoding pattern to save a focus session
+    private func saveFocusSessions() {
+        do {
+            savedFocusSessionsData = try JSONEncoder().encode(focusSessions)
+        } catch {
+            print("Could not save focus sessions: \(error)")
+        }
+    }
+
+    private func loadFocusSessions() {
+        guard !savedFocusSessionsData.isEmpty else {
+            return
+        }
+
+        do {
+            focusSessions = try JSONDecoder().decode(
+                [FocusSession].self,
+                from: savedFocusSessionsData
+            )
+        } catch {
+            print("Could not load focus sessions: \(error)")
         }
     }
 }
