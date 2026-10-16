@@ -39,9 +39,17 @@ struct FocusSessionView: View {
 
         return "Start"
     }
-    
+    // Access an individual polyp
     let polyp: CoralPolyp
     
+    // Lets the parent receive the updated polyp + hold local draft notes
+    let onFinish: (CoralPolyp) -> Void
+
+    @State private var isFinishing = false
+    @State private var stoppingPoint = ""
+    @State private var nextStep = ""
+    
+    @State private var startedAt: Date? // nil - opening screen doesn't mean you've started focusing
     
     var body: some View {
         VStack(spacing: 24) {
@@ -52,6 +60,14 @@ struct FocusSessionView: View {
             Text(polyp.taskTitle)
                 .font(.title2)
                 .fontWeight(.semibold)
+            
+            // Makes the timestamp visible
+            if let startedAt { // upwraps the optional date
+                Text("Started at \(startedAt.formatted(date: .omitted, time: .shortened))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
             if !polyp.nextStep.isEmpty {
                 Text("Next: \(polyp.nextStep)")
                     .foregroundStyle(.secondary)
@@ -61,42 +77,85 @@ struct FocusSessionView: View {
             Text(formattedTime)
                 .font(.system(size: 64, weight: .medium, design: .rounded))
                 .monospacedDigit()
-            
-            
-            Button(timerButtonTitle) {
-                if isRunning {
-                    updateRemainingTime()
+            if !isFinishing {
+                
+                Button(timerButtonTitle) {
+                    if isRunning {
+                        updateRemainingTime()
+                        isRunning = false
+                        endDate = nil
+                    } else {
+                        if startedAt == nil {
+                            // When this session first began (doesn't change on resume)
+                            startedAt = Date()
+                        }
+                        // When the current countdown will finish (changes on resume)
+                        endDate = Date().addingTimeInterval(
+                            TimeInterval(remainingSeconds)
+                        )
+                        isRunning = true
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.teal)
+                .disabled(remainingSeconds == 0)
+                
+                
+                if remainingSeconds == 0 {
+                    Label("Focus session complete!", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.teal)
+                    
+                    Text("Before you leave, think about where you stopped and what comes next.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                
+                // "Discard this attempt and prepare a fresh one"
+                Button("Reset"){
                     isRunning = false
                     endDate = nil
-                } else {
-                    endDate = Date().addingTimeInterval(
-                        TimeInterval(remainingSeconds)
-                    )
-                    isRunning = true
+                    remainingSeconds = sessionDuration
+                    startedAt = nil
+                    
                 }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.teal)
-            .disabled(remainingSeconds == 0)
             
-            if remainingSeconds == 0 {
-                Label("Focus session complete!", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.teal)
+            
+            // Leave an updated polyp when you finish working
+            if isFinishing {
+                TextField("Where did you stop?", text: $stoppingPoint)
+                    .textFieldStyle(.roundedBorder)
 
-                Text("Before you leave, think about where you stopped and what comes next.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                TextField("What is your next step?", text: $nextStep)
+                    .textFieldStyle(.roundedBorder)
+
+                Button("Apply notes and close") {
+                    var updatedPolyp = polyp // mutable copy
+                    updatedPolyp.stoppingPoint = stoppingPoint
+                    updatedPolyp.nextStep = nextStep
+
+                    onFinish(updatedPolyp)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.teal)
+            } else {
+                Button("Finish and leave a polyp") {
+                    if isRunning {
+                        updateRemainingTime()
+                    }
+
+                    isRunning = false
+                    endDate = nil
+
+                    stoppingPoint = polyp.stoppingPoint
+                    nextStep = polyp.nextStep
+                    isFinishing = true
+                }
+                .buttonStyle(.bordered)
             }
-            
-            
-            Button("Reset"){
-                isRunning = false
-                endDate = nil
-                remainingSeconds = sessionDuration
-                
-            }
-            .buttonStyle(.bordered)
             
             Button("Close") {
                 dismiss()
@@ -149,8 +208,8 @@ struct FocusSessionView: View {
     FocusSessionView(
         polyp: CoralPolyp(
             taskTitle: "Study Swift",
-            stoppingPoint: "Practiced bindings",
-            nextStep: "Build a focus session"
+            stoppingPoint: "Practiced bindings.",
+            nextStep: "Build a focus session."
         )
-    )
+    ) { _ in } // empty action bc screen requires onFinish, preview ignores the returned polyp
 }
