@@ -40,14 +40,23 @@ struct FocusSessionView: View {
         return "Start"
     }
     
+    let polyp: CoralPolyp
+    
+    
     var body: some View {
         VStack(spacing: 24) {
             Text("Focus session")
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
-            Text("Make a little progress on your reef.")
-                .foregroundStyle(.secondary)
+            Text(polyp.taskTitle)
+                .font(.title2)
+                .fontWeight(.semibold)
+            if !polyp.nextStep.isEmpty {
+                Text("Next: \(polyp.nextStep)")
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
 
             Text(formattedTime)
                 .font(.system(size: 64, weight: .medium, design: .rounded))
@@ -135,6 +144,13 @@ struct FocusSessionView: View {
     }
 }
 
+// Preview supplies a polyp
 #Preview {
-    FocusSessionView()
+    FocusSessionView(
+        polyp: CoralPolyp(
+            taskTitle: "Study Swift",
+            stoppingPoint: "Practiced bindings",
+            nextStep: "Build a focus session"
+        )
+    )
 }

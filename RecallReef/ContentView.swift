@@ -43,8 +43,8 @@ struct ContentView: View {
     // Prevent repeated loading
     @State private var hasLoadedPolyps = false
     
-    // Focus session timer
-    @State private var isShowingFocusSession = false
+    // Store selected polyp
+    @State private var selectedFocusPolyp: CoralPolyp?
     
     
     // ---------------------------------
@@ -61,13 +61,7 @@ struct ContentView: View {
             Text("Pick up where you left off.")
                 .foregroundStyle(.secondary)
             
-            
-            Button("Start a focus session") {
-                isShowingFocusSession = true
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.teal)
-            
+        
             
             if isPolypVisible {
                 TextField("Search tasks", text: $searchText)
@@ -95,6 +89,12 @@ struct ContentView: View {
                                     CoralPolypCard(polyp: $polyp){
                                         markAsChanged()
                                     }
+                                    
+                                    Button("Focus on this task") {
+                                        selectedFocusPolyp = polyp
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .tint(.teal)
 
                                     Button("Delete polyp", role: .destructive) {
                                         polypIDToDelete = polyp.id
@@ -146,8 +146,9 @@ struct ContentView: View {
             }
         }
         // To open and close the Focus Screen
-        .fullScreenCover(isPresented: $isShowingFocusSession) {
-            FocusSessionView()
+        // optional nil -> no focus screen
+        .fullScreenCover(item: $selectedFocusPolyp) { polyp in
+            FocusSessionView(polyp: polyp)
         }
         
         .onAppear {
