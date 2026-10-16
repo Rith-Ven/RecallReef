@@ -12,11 +12,6 @@ struct ContentView: View {
     @State private var isPolypSaved = false
     @State private var saveConfirmationTask: Task <Void, Never>? // stores an optional async task
     
-    //    @State private var polyp = CoralPolyp(
-    //        taskTitle: "Study C pointers",
-    //        stoppingPoint: "Finished tracing the function call.",
-    //        nextStep: "Explain why the original array changes."
-    //        )
     @State private var polyps: [CoralPolyp] = []
     
     @AppStorage("savedPolyp")
@@ -45,16 +40,22 @@ struct ContentView: View {
                         }
                         // Creates a view for each element
                         ForEach($polyps) { $polyp in
-                            CoralPolypCard(polyp: $polyp)
-                                .onChange(of: polyp.taskTitle) {
-                                    clearSaveConfirmation()
+                            VStack(alignment: .leading, spacing: 8) {
+                                CoralPolypCard(polyp: $polyp)
+
+                                Button("Delete polyp", role: .destructive) {
+                                    deletePolyp(id: polyp.id)
                                 }
-                                .onChange(of: polyp.stoppingPoint) {
-                                    clearSaveConfirmation()
-                                }
-                                .onChange(of: polyp.nextStep) {
-                                    clearSaveConfirmation()
-                                }
+                            }
+                            .onChange(of: polyp.taskTitle) {
+                                clearSaveConfirmation()
+                            }
+                            .onChange(of: polyp.stoppingPoint) {
+                                clearSaveConfirmation()
+                            }
+                            .onChange(of: polyp.nextStep) {
+                                clearSaveConfirmation()
+                            }
                         }
                     }
                 }
@@ -92,6 +93,14 @@ struct ContentView: View {
         .padding()
         .onAppear {
             loadPolyps()
+        }
+    }
+    
+    private func deletePolyp(id: UUID) {
+        clearSaveConfirmation()
+
+        polyps.removeAll { polyp in
+            polyp.id == id
         }
     }
     
