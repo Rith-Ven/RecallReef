@@ -30,12 +30,16 @@ struct ContentView: View {
     
     // To find a polyp by task title
     @State private var searchText = ""
+    
     // To show feedback when nothing matches
     private var hasSearchResults: Bool {
         polyps.contains { polyp in
             polyp.taskTitle.localizedCaseInsensitiveContains(searchText)
         }
     }
+    
+    // To make unsaved changes clear
+    @State private var hasUnsavedChanges = false
     
     var body: some View {
         VStack {
@@ -78,13 +82,13 @@ struct ContentView: View {
                                     }
                                 }
                                 .onChange(of: polyp.taskTitle) {
-                                    clearSaveConfirmation()
+                                    markAsChanged()
                                 }
                                 .onChange(of: polyp.stoppingPoint) {
-                                    clearSaveConfirmation()
+                                    markAsChanged()
                                 }
                                 .onChange(of: polyp.nextStep) {
-                                    clearSaveConfirmation()
+                                    markAsChanged()
                                 }
                             }
                         }
@@ -103,11 +107,18 @@ struct ContentView: View {
                 }
                 .buttonStyle(.bordered)
                 
+                if hasUnsavedChanges {
+                    Text("You have unsaved changes.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+               
                 Button("Save polyps") {
                     savePolyps()
                 }
                 .buttonStyle(.bordered)
             }
+            
             if isPolypSaved {
                 Label("Polyps saved", systemImage: "checkmark.circle.fill")
                     .font(.footnote)
@@ -119,7 +130,7 @@ struct ContentView: View {
         .sheet(isPresented: $isShowingNewPolyp) {
             NewPolypView { newPolyp in
                 polyps.append(newPolyp)
-                clearSaveConfirmation()
+                markAsChanged()
             }
         }
         .onAppear {
@@ -146,8 +157,16 @@ struct ContentView: View {
         }
     }
     
-    private func deletePolyp(id: UUID) {
+    
+    // Helper Functions
+    
+    private func markAsChanged() {
         clearSaveConfirmation()
+        hasUnsavedChanges = true
+    }
+    
+    private func deletePolyp(id: UUID) {
+        markAsChanged()
 
         polyps.removeAll { polyp in
             polyp.id == id
@@ -165,6 +184,8 @@ struct ContentView: View {
         do {
             let encodedPolyps = try JSONEncoder().encode(polyps)
             savedPolypsData = encodedPolyps
+            hasUnsavedChanges = false
+            
             isPolypSaved = true
             
             saveConfirmationTask = Task { @MainActor in
