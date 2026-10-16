@@ -23,6 +23,8 @@ struct FocusSessionView: View {
     
     @State private var isRunning = false
     
+    @State private var endDate: Date?
+    
     
     
     var body: some View {
@@ -40,15 +42,26 @@ struct FocusSessionView: View {
             
             
             Button(isRunning ? "Pause" : "Start") {
-                isRunning.toggle()
+                if isRunning {
+                    updateRemainingTime()
+                    isRunning = false
+                    endDate = nil
+                } else {
+                    endDate = Date().addingTimeInterval(
+                        TimeInterval(remainingSeconds)
+                    )
+                    isRunning = true
+                }
             }
             .buttonStyle(.borderedProminent)
             .tint(.teal)
             .disabled(remainingSeconds == 0)
             
+            
             Button("Reset"){
                 isRunning = false
                 remainingSeconds = 25*60
+                endDate = nil
             }
             .buttonStyle(.bordered)
             
@@ -60,27 +73,41 @@ struct FocusSessionView: View {
         .padding()
         
         .task(id: isRunning) {
-            guard isRunning else{
+            guard isRunning else {
                 return
             }
-            
-            while !Task.isCancelled && remainingSeconds > 0 {
+
+            while !Task.isCancelled && isRunning {
+                updateRemainingTime()
+
+                guard isRunning else {
+                    return
+                }
+
                 do {
-                    try await Task.sleep(for: .seconds(1))
+                    try await Task.sleep(for: .milliseconds(200))
                 } catch {
                     return
                 }
-                guard !Task.isCancelled else {
-                    return
-                }
-                
-                remainingSeconds -= 1
-            }
-            if remainingSeconds == 0 {
-                isRunning = false
             }
         }
         
+    }
+    
+    private func updateRemainingTime() {
+        guard let endDate else {
+            return
+        }
+
+        remainingSeconds = max(
+            0,
+            Int(ceil(endDate.timeIntervalSinceNow))
+        )
+
+        if remainingSeconds == 0 {
+            isRunning = false
+            self.endDate = nil
+        }
     }
 }
 
