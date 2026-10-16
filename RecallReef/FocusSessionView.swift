@@ -25,7 +25,20 @@ struct FocusSessionView: View {
     
     @State private var endDate: Date?
     
+    private let sessionDuration = 25 * 60
     
+    // Chooses button label based on the current state
+    private var timerButtonTitle: String {
+        if isRunning {
+            return "Pause"
+        }
+
+        if remainingSeconds < sessionDuration {
+            return "Resume"
+        }
+
+        return "Start"
+    }
     
     var body: some View {
         VStack(spacing: 24) {
@@ -41,7 +54,7 @@ struct FocusSessionView: View {
                 .monospacedDigit()
             
             
-            Button(isRunning ? "Pause" : "Start") {
+            Button(timerButtonTitle) {
                 if isRunning {
                     updateRemainingTime()
                     isRunning = false
@@ -57,11 +70,22 @@ struct FocusSessionView: View {
             .tint(.teal)
             .disabled(remainingSeconds == 0)
             
+            if remainingSeconds == 0 {
+                Label("Focus session complete!", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.teal)
+
+                Text("Before you leave, think about where you stopped and what comes next.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            
             
             Button("Reset"){
                 isRunning = false
-                remainingSeconds = 25*60
                 endDate = nil
+                remainingSeconds = sessionDuration
+                
             }
             .buttonStyle(.bordered)
             
