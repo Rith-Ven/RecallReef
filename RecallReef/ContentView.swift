@@ -5,6 +5,8 @@
 //  Created by Rithanya Venkatesh on 10/15/26.
 //
 
+// Binding - read and edit this value I own
+// Closure - call this action when something happens
 import SwiftUI
 
 struct ContentView: View {
@@ -21,6 +23,9 @@ struct ContentView: View {
     private var savedPolypsData: Data = Data()
     
     @State private var isShowingNewPolyp = false
+    
+    @State private var isShowingDeleteConfirmation = false
+    @State private var polypIDToDelete: UUID?
     
     var body: some View {
         VStack {
@@ -46,7 +51,8 @@ struct ContentView: View {
                                 CoralPolypCard(polyp: $polyp)
 
                                 Button("Delete polyp", role: .destructive) {
-                                    deletePolyp(id: polyp.id)
+                                    polypIDToDelete = polyp.id
+                                    isShowingDeleteConfirmation = true
                                 }
                             }
                             .onChange(of: polyp.taskTitle) {
@@ -96,6 +102,24 @@ struct ContentView: View {
         .onAppear {
             loadPolyps()
     
+        }
+        .alert(
+            "Delete this coral polyp?",
+            isPresented: $isShowingDeleteConfirmation
+        ) {
+            Button("Delete", role: .destructive) {
+                if let id = polypIDToDelete {
+                    deletePolyp(id: id)
+                }
+
+                polypIDToDelete = nil
+            }
+
+            Button("Cancel", role: .cancel) {
+                polypIDToDelete = nil
+            }
+        } message: {
+            Text("This removes the polyp from your current collection.")
         }
     }
     
