@@ -9,23 +9,38 @@ import SwiftUI
 
 struct CoralPolypCard: View {
     @Binding var polyp: CoralPolyp
+    @State private var isEditing = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Coral polyp")
                 .font(.headline)
-            Text(polyp.taskTitle)
-                .font(.title2)
-                .fontWeight(.semibold)
-            TextField("Task title", text: $polyp.taskTitle)
-                .textFieldStyle(.roundedBorder)
-            Text(polyp.stoppingPoint)
-            TextField("Where did you stop?", text: $polyp.stoppingPoint)
-                .textFieldStyle(.roundedBorder)
-            Text("Next step: \(polyp.nextStep)")
-                .foregroundStyle(.secondary)
-            TextField("What is your next step?", text: $polyp.nextStep)
-                .textFieldStyle(.roundedBorder)
+
+            if isEditing {
+                TextField("Task title", text: $polyp.taskTitle)
+                    .textFieldStyle(.roundedBorder)
+
+                TextField("Where did you stop?", text: $polyp.stoppingPoint)
+                    .textFieldStyle(.roundedBorder)
+
+                TextField("What is your next step?", text: $polyp.nextStep)
+                    .textFieldStyle(.roundedBorder)
+            } else {
+                Text(polyp.taskTitle)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("Stopped at: \(polyp.stoppingPoint)")
+                    .foregroundStyle(.secondary)
+
+                Text("Next: \(polyp.nextStep)")
+                    .foregroundStyle(.secondary)
+            }
+
+            Button(isEditing ? "Done editing" : "Edit") {
+                isEditing.toggle()
+            }
+            .buttonStyle(.bordered)
         }
         .padding()
         .background(Color.teal.opacity(0.12))
