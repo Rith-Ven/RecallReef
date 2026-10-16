@@ -51,6 +51,11 @@ struct FocusSessionView: View {
     
     @State private var startedAt: Date? // nil - opening screen doesn't mean you've started focusing
     
+    // Marks beginning of current uninterrupted stretch
+    @State private var runningSegmentStartedAt: Date?
+    // Holds the total from stretches already finished
+    @State private var accumulatedFocusSeconds: TimeInterval = 0
+    
     var body: some View {
         VStack(spacing: 24) {
             Text("Focus session")
@@ -82,15 +87,18 @@ struct FocusSessionView: View {
                 Button(timerButtonTitle) {
                     if isRunning {
                         updateRemainingTime()
+                        finishRunningSegment()
                         isRunning = false
                         endDate = nil
                     } else {
+                        let now = Date()
                         if startedAt == nil {
                             // When this session first began (doesn't change on resume)
-                            startedAt = Date()
+                            startedAt = now
                         }
+                        runningSegmentStartedAt = now
                         // When the current countdown will finish (changes on resume)
-                        endDate = Date().addingTimeInterval(
+                        endDate = now.addingTimeInterval(
                             TimeInterval(remainingSeconds)
                         )
                         isRunning = true
@@ -115,8 +123,11 @@ struct FocusSessionView: View {
                 Button("Reset"){
                     isRunning = false
                     endDate = nil
+                    runningSegmentStartedAt = nil
+                    accumulatedFocusSeconds = 0
                     remainingSeconds = sessionDuration
                     startedAt = nil
+                    
                     
                 }
                 .buttonStyle(.bordered)
@@ -146,13 +157,14 @@ struct FocusSessionView: View {
                     if isRunning {
                         updateRemainingTime()
                     }
-
+                    finishRunningSegment()
                     isRunning = false
                     endDate = nil
 
                     stoppingPoint = polyp.stoppingPoint
                     nextStep = polyp.nextStep
                     isFinishing = true
+                    //print("Focused seconds: \(accumulatedFocusSeconds)")
                 }
                 .buttonStyle(.bordered)
             }
@@ -186,6 +198,21 @@ struct FocusSessionView: View {
         
     }
     
+    private func finishRunningSegment() {
+        guard let segmentStart = runningSegmentStartedAt else {
+            return
+        }
+
+        let segmentEnd = min(Date(), endDate ?? Date())
+
+        accumulatedFocusSeconds += max(
+            0,
+            segmentEnd.timeIntervalSince(segmentStart)
+        )
+
+        runningSegmentStartedAt = nil
+    }
+    
     private func updateRemainingTime() {
         guard let endDate else {
             return
@@ -197,6 +224,7 @@ struct FocusSessionView: View {
         )
 
         if remainingSeconds == 0 {
+            finishRunningSegment()
             isRunning = false
             self.endDate = nil
         }
