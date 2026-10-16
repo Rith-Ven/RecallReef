@@ -37,9 +37,11 @@ struct ContentView: View {
             polyp.taskTitle.localizedCaseInsensitiveContains(searchText)
         }
     }
-    
     // To make unsaved changes clear
     @State private var hasUnsavedChanges = false
+    
+    // Prevent repeated loading
+    @State private var hasLoadedPolyps = false
     
     var body: some View {
         VStack {
@@ -69,26 +71,20 @@ struct ContentView: View {
                         }
                         
                         // Creates a view for each element
+                        // Parent receives an explicit notif when you apply an edit
                         ForEach($polyps) { $polyp in
                             if searchText.isEmpty ||
                                 polyp.taskTitle.localizedCaseInsensitiveContains(searchText) {
 
                                 VStack(alignment: .leading, spacing: 8) {
-                                    CoralPolypCard(polyp: $polyp)
+                                    CoralPolypCard(polyp: $polyp){
+                                        markAsChanged()
+                                    }
 
                                     Button("Delete polyp", role: .destructive) {
                                         polypIDToDelete = polyp.id
                                         isShowingDeleteConfirmation = true
                                     }
-                                }
-                                .onChange(of: polyp.taskTitle) {
-                                    markAsChanged()
-                                }
-                                .onChange(of: polyp.stoppingPoint) {
-                                    markAsChanged()
-                                }
-                                .onChange(of: polyp.nextStep) {
-                                    markAsChanged()
                                 }
                             }
                         }
@@ -134,7 +130,11 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            guard !hasLoadedPolyps else{
+                return
+            }
             loadPolyps()
+            hasLoadedPolyps = true
     
         }
         .alert(

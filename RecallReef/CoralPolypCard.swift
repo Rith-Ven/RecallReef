@@ -9,6 +9,9 @@ import SwiftUI
 
 struct CoralPolypCard: View {
     @Binding var polyp: CoralPolyp
+    
+    let onApply: () -> Void // An action that takes no arguments and returns no meaningful value
+    
     @State private var isEditing = false
     
     // Independent state owned by the card
@@ -67,6 +70,7 @@ struct CoralPolypCard: View {
                         )
 
                         polyp = draft
+                        onApply()
                         isEditing = false
                     }
                     .disabled(!isDraftValid)
