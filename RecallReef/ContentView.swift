@@ -24,8 +24,18 @@ struct ContentView: View {
     
     @State private var isShowingNewPolyp = false
     
+    // To delete a polyp
     @State private var isShowingDeleteConfirmation = false
     @State private var polypIDToDelete: UUID?
+    
+    // To find a polyp by task title
+    @State private var searchText = ""
+    // To show feedback when nothing matches
+    private var hasSearchResults: Bool {
+        polyps.contains { polyp in
+            polyp.taskTitle.localizedCaseInsensitiveContains(searchText)
+        }
+    }
     
     var body: some View {
         VStack {
@@ -39,36 +49,49 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
             
             if isPolypVisible {
+                TextField("Search tasks", text: $searchText)
+                    .textFieldStyle(.roundedBorder)
+                
                 ScrollView{
                     VStack(spacing: 16){
                         if polyps.isEmpty {
                             Text("Leave your first coral polyp.")
                                 .foregroundStyle(.secondary)
                         }
+                        // No search matches
+                        if !polyps.isEmpty && !searchText.isEmpty && !hasSearchResults {
+                            Text("No matching tasks.")
+                                .foregroundStyle(.secondary)
+                        }
+                        
                         // Creates a view for each element
                         ForEach($polyps) { $polyp in
-                            VStack(alignment: .leading, spacing: 8) {
-                                CoralPolypCard(polyp: $polyp)
+                            if searchText.isEmpty ||
+                                polyp.taskTitle.localizedCaseInsensitiveContains(searchText) {
 
-                                Button("Delete polyp", role: .destructive) {
-                                    polypIDToDelete = polyp.id
-                                    isShowingDeleteConfirmation = true
+                                VStack(alignment: .leading, spacing: 8) {
+                                    CoralPolypCard(polyp: $polyp)
+
+                                    Button("Delete polyp", role: .destructive) {
+                                        polypIDToDelete = polyp.id
+                                        isShowingDeleteConfirmation = true
+                                    }
                                 }
-                            }
-                            .onChange(of: polyp.taskTitle) {
-                                clearSaveConfirmation()
-                            }
-                            .onChange(of: polyp.stoppingPoint) {
-                                clearSaveConfirmation()
-                            }
-                            .onChange(of: polyp.nextStep) {
-                                clearSaveConfirmation()
+                                .onChange(of: polyp.taskTitle) {
+                                    clearSaveConfirmation()
+                                }
+                                .onChange(of: polyp.stoppingPoint) {
+                                    clearSaveConfirmation()
+                                }
+                                .onChange(of: polyp.nextStep) {
+                                    clearSaveConfirmation()
+                                }
                             }
                         }
                     }
                 }
             }
-            Button (isPolypVisible ? "Hide coral polyp" : "Show coral polyp") {
+            Button (isPolypVisible ? "Hide coral polyps" : "Show coral polyps") {
                 isPolypVisible.toggle( )
             }
             .buttonStyle(.borderedProminent)
