@@ -70,6 +70,10 @@ struct ContentView: View {
     // Records received from the API, separate from local polyps
     @State private var remotePolyps: [CoralPolyp] = []
     
+    // Add upload to backend state
+    @State private var isUploadingPolyp = false
+    @State private var uploadMessage = ""
+    
     // ---------------------------------
     var body: some View {
         VStack {
@@ -94,6 +98,19 @@ struct ContentView: View {
             .buttonStyle(.bordered)
             .disabled(isCheckingBackend)
 
+            // Feedback for uploading a local polyp.
+            if isUploadingPolyp {
+                ProgressView("Uploading polyp")
+            }
+
+            if !uploadMessage.isEmpty {
+                Text(uploadMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            
+            // Existing feedback for fetching backend records
             if isCheckingBackend {
                 ProgressView()
             }
@@ -172,6 +189,15 @@ struct ContentView: View {
                                     .buttonStyle(.borderedProminent)
                                     .tint(.teal)
                                     
+                                    // Add button to upload
+                                    Button("Upload to backend") {
+                                        Task {
+                                            await uploadPolyp(polyp)
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(isUploadingPolyp)
+                                    
                                     Button("Delete polyp", role: .destructive) {
                                         polypIDToDelete = polyp.id
                                         isShowingDeleteConfirmation = true
@@ -182,6 +208,8 @@ struct ContentView: View {
                     }
                 }
             }
+            
+            
             Button (isPolypVisible ? "Hide coral polyps" : "Show coral polyps") {
                 isPolypVisible.toggle( )
             }
@@ -398,6 +426,28 @@ struct ContentView: View {
             print("Backend connection failed: \(error)")
         }
     }
+    
+    @MainActor
+    private func uploadPolyp(_ polyp: CoralPolyp) async {
+        isUploadingPolyp = true
+        uploadMessage = "Uploading..."
+
+        // Clear the loading flag on success or failure.
+        defer {
+            isUploadingPolyp = false
+        }
+
+        do {
+            // Send a snapshot of this local polyp to the API.
+            let createdPolyp = try await apiClient.createPolyp(polyp)
+
+            uploadMessage = "Uploaded: \(createdPolyp.taskTitle)"
+        } catch {
+            uploadMessage = "Upload failed: \(error.localizedDescription)"
+            print("Polyp upload failed: \(error)")
+        }
+    }
+    
     
 }
 
