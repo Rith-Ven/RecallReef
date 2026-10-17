@@ -53,6 +53,8 @@ struct ContentView: View {
     // Receive the record
     @State private var focusSessions: [FocusSession] = []
     
+    // Displays Session History
+    @State private var isShowingSessionHistory = false
     // ---------------------------------
     var body: some View {
         VStack {
@@ -71,6 +73,10 @@ struct ContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         
+            Button("View session history") {
+                isShowingSessionHistory = true
+            }
+            .buttonStyle(.bordered)
             
             if isPolypVisible {
                 TextField("Search tasks", text: $searchText)
@@ -198,6 +204,9 @@ struct ContentView: View {
             }
         } message: {
             Text("This removes the polyp from your current collection.")
+        }
+        .sheet(isPresented: $isShowingSessionHistory) {
+            SessionHistoryView(sessions: focusSessions)
         }
     }
     

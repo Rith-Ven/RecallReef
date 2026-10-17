@@ -1,0 +1,72 @@
+//
+//  SessionHistoryView.swift
+//  RecallReef
+//
+//  Created by Rithanya Venkatesh on 10/16/26.
+//
+
+import SwiftUI
+
+struct SessionHistoryView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    // Receives a read-only array from the parent
+    let sessions: [FocusSession]
+
+    var body: some View {
+        NavigationStack {
+            // Displays content in vertically scrolling systems list
+            List {
+                if sessions.isEmpty {
+                    Text("Your finished focus sessions will appear here.")
+                        .foregroundStyle(.secondary)
+                }
+
+                ForEach(
+                    // Returns new array ordered from newest to oldest
+                    sessions.sorted { $0.startedAt > $1.startedAt }
+                ) { session in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(session.taskTitle)
+                            .font(.headline)
+
+                        Text(
+                            session.startedAt.formatted(
+                                date: .abbreviated,
+                                time: .shortened
+                            )
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                        Text(
+                            "\(session.focusedSeconds / 60) min "
+                            + "\(session.focusedSeconds % 60) sec focused"
+                        )
+
+                        Text(
+                            session.completedFullTimer
+                                ? "Full timer completed"
+                                : "Finished early"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .navigationTitle("Session history")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+#Preview {
+    SessionHistoryView(sessions: [])
+}
