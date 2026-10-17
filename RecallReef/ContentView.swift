@@ -108,7 +108,7 @@ struct ContentView: View {
                     
                     // Feedback for uploading a local polyp.
                     if isUploadingPolyp {
-                        ProgressView("Uploading polyp")
+                        ProgressView("Contacting backend")
                     }
                     
                     if !uploadMessage.isEmpty {
@@ -204,6 +204,14 @@ struct ContentView: View {
                                     Button("Upload to backend") {
                                         Task {
                                             await uploadPolyp(polyp)
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(isUploadingPolyp)
+                                    
+                                    Button("Update backend copy") {
+                                        Task {
+                                            await updateBackendPolyp(polyp)
                                         }
                                     }
                                     .buttonStyle(.bordered)
@@ -456,6 +464,24 @@ struct ContentView: View {
         } catch {
             uploadMessage = "Upload failed: \(error.localizedDescription)"
             print("Polyp upload failed: \(error)")
+        }
+    }
+    // Helper to connect update action
+    @MainActor
+    private func updateBackendPolyp(_ polyp: CoralPolyp) async {
+        isUploadingPolyp = true
+        uploadMessage = "Updating backend..."
+
+        defer {
+            isUploadingPolyp = false
+        }
+
+        do {
+            let updatedPolyp = try await apiClient.updatePolyp(polyp)
+            uploadMessage = "Updated: \(updatedPolyp.taskTitle)"
+        } catch {
+            uploadMessage = "Update failed: \(error.localizedDescription)"
+            print("Backend update failed: \(error)")
         }
     }
     

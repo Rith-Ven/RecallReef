@@ -63,3 +63,33 @@ def create_polyp(polyp: CoralPolyp) -> CoralPolyp:
 
     # Return the record that was created.
     return polyp
+
+
+# Replace the editable fields of an existing polyp.
+@app.put("/polyps/{polyp_id}")
+def update_polyp(polyp_id: UUID, polyp: CoralPolyp) -> CoralPolyp:
+    # The URL and body must identify the same record.
+    if polyp_id != polyp.id:
+        raise HTTPException(
+            status_code=422,
+            detail="The URL ID and polyp ID must match.",
+        )
+
+    polyp.taskTitle = polyp.taskTitle.strip()
+
+    if not polyp.taskTitle:
+        raise HTTPException(
+            status_code=422,
+            detail="Task title must not be blank.",
+        )
+
+    # Replace the matching record in the temporary collection.
+    for index, existing_polyp in enumerate(sample_polyps):
+        if existing_polyp.id == polyp_id:
+            sample_polyps[index] = polyp
+            return polyp
+
+    raise HTTPException(
+        status_code=404,
+        detail="No polyp with this ID exists.",
+    )
