@@ -55,6 +55,10 @@ struct ContentView: View {
     @State private var isShowingStorageError = false
     @State private var storageErrorMessage = ""
     
+    // Saving should only be allowed only after corresponding data loaded successfully
+    @State private var canSavePolyps = false
+    @State private var canSaveFocusSessions = false
+    
     // ---------------------------------
     var body: some View {
         VStack {
@@ -241,6 +245,11 @@ struct ContentView: View {
     }
     
     private func savePolyps() {
+        guard canSavePolyps else {
+            showStorageError("Saving is unavailable because your existing coral polyps could not be loaded. Your stored data has not been replaced."
+            )
+            return
+        }
         clearSaveConfirmation()
         
         do {
@@ -269,12 +278,20 @@ struct ContentView: View {
     private func loadPolyps() {
         do {
             polyps = try polypStorage.load()
+            canSavePolyps = true
         } catch {
+            canSavePolyps = false
             print("Could not load polyps: \(error)")
             showStorageError("Could not load your saved coral polyps.")
         }
     }
     private func saveFocusSessions() {
+        guard canSaveFocusSessions else {
+            showStorageError(
+                "Saving is unavailable because your existing session history could not be loaded. Your stored data has not been replaced."
+            )
+            return
+        }
         do {
             try sessionStorage.save(focusSessions)
         } catch {
@@ -288,7 +305,9 @@ struct ContentView: View {
     private func loadFocusSessions() {
         do {
             focusSessions = try sessionStorage.load()
+            canSaveFocusSessions = true
         } catch {
+            canSaveFocusSessions = false
             print("Could not load focus sessions: \(error)")
             showStorageError("Could not load your saved session history.")
         }
