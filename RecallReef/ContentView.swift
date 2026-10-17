@@ -23,8 +23,7 @@ struct ContentView: View {
     @AppStorage("savedPolyps")
     private var savedPolypsData: Data = Data()
     
-    @AppStorage("savedFocusSessions")
-    private var savedFocusSessionsData: Data = Data()
+    private let sessionStorage = FocusSessionStorage()
     
     @State private var isShowingNewPolyp = false
     
@@ -276,25 +275,17 @@ struct ContentView: View {
             print("Could not load polyps: \(error)")
         }
     }
-    // Uses same encoding/decoding pattern to save a focus session
     private func saveFocusSessions() {
         do {
-            savedFocusSessionsData = try JSONEncoder().encode(focusSessions)
+            try sessionStorage.save(focusSessions)
         } catch {
             print("Could not save focus sessions: \(error)")
         }
     }
 
     private func loadFocusSessions() {
-        guard !savedFocusSessionsData.isEmpty else {
-            return
-        }
-
         do {
-            focusSessions = try JSONDecoder().decode(
-                [FocusSession].self,
-                from: savedFocusSessionsData
-            )
+            focusSessions = try sessionStorage.load()
         } catch {
             print("Could not load focus sessions: \(error)")
         }
