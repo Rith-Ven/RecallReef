@@ -74,6 +74,9 @@ struct ContentView: View {
     @State private var isUploadingPolyp = false
     @State private var uploadMessage = ""
     
+    // TEMPORARY CHECK VAR
+    @State private var isBackendToolsExpanded = false
+
     // ---------------------------------
     var body: some View {
         VStack {
@@ -88,63 +91,71 @@ struct ContentView: View {
             Text("Pick up where you left off.")
                 .foregroundStyle(.secondary)
             
-            
-            Button("Check backend connection") {
-                // Start asynchronous work from the button's action
-                Task {
-                    await checkBackend()
-                }
-            }
-            .buttonStyle(.bordered)
-            .disabled(isCheckingBackend)
-
-            // Feedback for uploading a local polyp.
-            if isUploadingPolyp {
-                ProgressView("Uploading polyp")
-            }
-
-            if !uploadMessage.isEmpty {
-                Text(uploadMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            
-            // Existing feedback for fetching backend records
-            if isCheckingBackend {
-                ProgressView()
-            }
-
-            if !backendMessage.isEmpty {
-                Text(backendMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            // Display a read-only backend preview
-            if !remotePolyps.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Backend preview")
-                        .font(.headline)
-
-                    // Display each decoded record without editing local data.
-                    ForEach(remotePolyps) { polyp in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(polyp.taskTitle)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-
-                            Text("Stopped at: \(polyp.stoppingPoint)")
-
-                            Text("Next: \(polyp.nextStep)")
+            DisclosureGroup(
+                "Backend testing",
+                isExpanded: $isBackendToolsExpanded
+            ) {
+                VStack(alignment:.leading,spacing:12) {
+                    
+                    Button("Check backend connection") {
+                        // Start asynchronous work from the button's action
+                        Task {
+                            await checkBackend()
                         }
-                        .font(.caption)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.blue.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isCheckingBackend)
+                    
+                    // Feedback for uploading a local polyp.
+                    if isUploadingPolyp {
+                        ProgressView("Uploading polyp")
+                    }
+                    
+                    if !uploadMessage.isEmpty {
+                        Text(uploadMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    
+                    // Existing feedback for fetching backend records
+                    if isCheckingBackend {
+                        ProgressView()
+                    }
+                    
+                    if !backendMessage.isEmpty {
+                        Text(backendMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    // Display a read-only backend preview
+                    if !remotePolyps.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Backend preview")
+                                .font(.headline)
+                            
+                            // Display each decoded record without editing local data.
+                            ForEach(remotePolyps) { polyp in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(polyp.taskTitle)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                    
+                                    Text("Stopped at: \(polyp.stoppingPoint)")
+                                    
+                                    Text("Next: \(polyp.nextStep)")
+                                }
+                                .font(.caption)
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.blue.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                        }
                     }
                 }
+                .padding(.top,8)
             }
             
             Text("Recorded sessions: \(focusSessions.count)")
