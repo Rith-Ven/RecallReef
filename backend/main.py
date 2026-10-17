@@ -19,7 +19,7 @@ class CoralPolyp(BaseModel):
 sample_polyps = [
     CoralPolyp(
         id=UUID("d13ad2b0-72c8-4ef7-9316-b91caf386142"),
-        taskTitle="Study Swift",
+        taskTitle="Learn how APIs work",
         stoppingPoint="Practiced state and bindings.",
         nextStep="Connect the app to the backend.",
     )

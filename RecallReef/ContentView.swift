@@ -59,6 +59,17 @@ struct ContentView: View {
     @State private var canSavePolyps = false
     @State private var canSaveFocusSessions = false
     
+    //----------backend-------------
+    
+    // Call API from app
+    private let apiClient = ReefAPIClient()
+    
+    @State private var isCheckingBackend = false
+    @State private var backendMessage = ""
+    
+    // Records received from the API, separate from local polyps
+    @State private var remotePolyps: [CoralPolyp] = []
+    
     // ---------------------------------
     var body: some View {
         VStack {
@@ -73,10 +84,56 @@ struct ContentView: View {
             Text("Pick up where you left off.")
                 .foregroundStyle(.secondary)
             
+            
+            Button("Check backend connection") {
+                // Start asynchronous work from the button's action
+                Task {
+                    await checkBackend()
+                }
+            }
+            .buttonStyle(.bordered)
+            .disabled(isCheckingBackend)
+
+            if isCheckingBackend {
+                ProgressView()
+            }
+
+            if !backendMessage.isEmpty {
+                Text(backendMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            // Display a read-only backend preview
+            if !remotePolyps.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Backend preview")
+                        .font(.headline)
+
+                    // Display each decoded record without editing local data.
+                    ForEach(remotePolyps) { polyp in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(polyp.taskTitle)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+
+                            Text("Stopped at: \(polyp.stoppingPoint)")
+
+                            Text("Next: \(polyp.nextStep)")
+                        }
+                        .font(.caption)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.blue.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+            }
+            
             Text("Recorded sessions: \(focusSessions.count)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-        
+            
             Button("View session history") {
                 isShowingSessionHistory = true
             }
@@ -103,7 +160,7 @@ struct ContentView: View {
                         ForEach($polyps) { $polyp in
                             if searchText.isEmpty ||
                                 polyp.taskTitle.localizedCaseInsensitiveContains(searchText) {
-
+                                
                                 VStack(alignment: .leading, spacing: 8) {
                                     CoralPolypCard(polyp: $polyp){
                                         markAsChanged()
@@ -114,7 +171,7 @@ struct ContentView: View {
                                     }
                                     .buttonStyle(.borderedProminent)
                                     .tint(.teal)
-
+                                    
                                     Button("Delete polyp", role: .destructive) {
                                         polypIDToDelete = polyp.id
                                         isShowingDeleteConfirmation = true
@@ -142,7 +199,7 @@ struct ContentView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-               
+                
                 Button("Save polyps") {
                     savePolyps()
                 }
@@ -166,7 +223,7 @@ struct ContentView: View {
             }
         }
         // To open and close the Focus Screen
-        // 
+        //
         .fullScreenCover(item: $selectedFocusPolyp) { polyp in
             FocusSessionView(polyp: polyp) { updatedPolyp, session in
                 if let index = polyps.firstIndex(where: {
@@ -175,7 +232,7 @@ struct ContentView: View {
                     polyps[index] = updatedPolyp
                     markAsChanged()
                 }
-
+                
                 if let session {
                     focusSessions.append(session)
                     saveFocusSessions()
@@ -190,7 +247,7 @@ struct ContentView: View {
             loadPolyps()
             loadFocusSessions()
             hasLoadedData = true
-    
+            
         }
         .alert(
             "Delete this coral polyp?",
@@ -200,10 +257,10 @@ struct ContentView: View {
                 if let id = polypIDToDelete {
                     deletePolyp(id: id)
                 }
-
+                
                 polypIDToDelete = nil
             }
-
+            
             Button("Cancel", role: .cancel) {
                 polypIDToDelete = nil
             }
@@ -233,7 +290,7 @@ struct ContentView: View {
     
     private func deletePolyp(id: UUID) {
         markAsChanged()
-
+        
         polyps.removeAll { polyp in
             polyp.id == id
         }
@@ -301,7 +358,7 @@ struct ContentView: View {
             )
         }
     }
-
+    
     private func loadFocusSessions() {
         do {
             focusSessions = try sessionStorage.load()
@@ -317,6 +374,31 @@ struct ContentView: View {
         storageErrorMessage = message
         isShowingStorageError = true
     }
+    
+    // Backend helper function
+    @MainActor // keeps this func interface-state updates on the main actor, awaiting network request still allows interface to be responsive
+    private func checkBackend() async {
+        isCheckingBackend = true
+        backendMessage = "Connecting..."
+        // Clear previous results before requesting fresh data.
+        remotePolyps = []
+
+        // Always clear the loading state when this function exits
+        // Schedules code to run when func exits
+        defer {
+            isCheckingBackend = false
+        }
+
+        do {
+            // Store the decoded records so the interface can display them.
+            remotePolyps = try await apiClient.fetchPolyps()
+            backendMessage = "Connected! Received \(remotePolyps.count) polyp(s)."
+        } catch {
+            backendMessage = "Connection failed: \(error.localizedDescription)"
+            print("Backend connection failed: \(error)")
+        }
+    }
+    
 }
 
 #Preview {
