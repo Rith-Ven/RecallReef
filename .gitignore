@@ -1,0 +1,8 @@
+
+# Python virtual environments
+backend/.venv/
+backend/.venv-python39/
+
+# Python generated files
+__pycache__/
+*.pyc
