@@ -16,12 +16,8 @@ struct ContentView: View {
     
     @State private var polyps: [CoralPolyp] = []
     
-    // Storage properties
-    @AppStorage("savedPolyp")
-    private var savedPolypData: Data = Data()
-    
-    @AppStorage("savedPolyps")
-    private var savedPolypsData: Data = Data()
+    // Storage - views handle interaction, storage types handle encoding, decoding and storage keys
+    private let polypStorage = CoralPolypStorage()
     
     private let sessionStorage = FocusSessionStorage()
     
@@ -234,8 +230,7 @@ struct ContentView: View {
         clearSaveConfirmation()
         
         do {
-            let encodedPolyps = try JSONEncoder().encode(polyps)
-            savedPolypsData = encodedPolyps
+            try polypStorage.save(polyps)
             hasUnsavedChanges = false
             
             isPolypSaved = true
@@ -258,19 +253,7 @@ struct ContentView: View {
     
     private func loadPolyps() {
         do {
-            if !savedPolypsData.isEmpty {
-                polyps = try JSONDecoder().decode(
-                    [CoralPolyp].self,
-                    from: savedPolypsData
-                )
-            } else if !savedPolypData.isEmpty {
-                let oldPolyp = try JSONDecoder().decode(
-                    CoralPolyp.self,
-                    from: savedPolypData
-                )
-                
-                polyps = [oldPolyp]
-            }
+            polyps = try polypStorage.load()
         } catch {
             print("Could not load polyps: \(error)")
         }
