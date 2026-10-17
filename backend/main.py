@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 # Create the API application.
@@ -36,3 +36,30 @@ def check_health():
 @app.get("/polyps")
 def get_polyps() -> list[CoralPolyp]:
     return sample_polyps
+
+
+# Accept a polyp from the request's JSON body.
+@app.post("/polyps", status_code=201)
+def create_polyp(polyp: CoralPolyp) -> CoralPolyp:
+    # Reject titles that are empty or contain only whitespace.
+    polyp.taskTitle = polyp.taskTitle.strip()
+
+    if not polyp.taskTitle:
+        raise HTTPException(
+            status_code=422,
+            detail="Task title must not be blank.",
+        )
+
+    # Reject an ID already used by another record.
+    for existing_polyp in sample_polyps:
+        if existing_polyp.id == polyp.id:
+            raise HTTPException(
+                status_code=409,
+                detail="A polyp with this ID already exists.",
+            )
+
+    # Store the record in the server's temporary list.
+    sample_polyps.append(polyp)
+
+    # Return the record that was created.
+    return polyp
