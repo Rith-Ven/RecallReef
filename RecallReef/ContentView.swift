@@ -50,6 +50,11 @@ struct ContentView: View {
     
     // Displays Session History
     @State private var isShowingSessionHistory = false
+    
+    // Make storage errors visible
+    @State private var isShowingStorageError = false
+    @State private var storageErrorMessage = ""
+    
     // ---------------------------------
     var body: some View {
         VStack {
@@ -146,6 +151,7 @@ struct ContentView: View {
                     .foregroundStyle(.green)
                     .transition(.opacity)
             }
+            
         }
         .padding()
         
@@ -200,6 +206,14 @@ struct ContentView: View {
         } message: {
             Text("This removes the polyp from your current collection.")
         }
+        .alert(
+            "Storage problem",
+            isPresented: $isShowingStorageError
+        ) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(storageErrorMessage)
+        }
         .sheet(isPresented: $isShowingSessionHistory) {
             SessionHistoryView(sessions: focusSessions)
         }
@@ -248,6 +262,7 @@ struct ContentView: View {
             }
         } catch {
             print("Could not save polyps: \(error)")
+            showStorageError("Could not save your coral polyps. Your changes are still in memory. Please try saving again.")
         }
     }
     
@@ -256,6 +271,7 @@ struct ContentView: View {
             polyps = try polypStorage.load()
         } catch {
             print("Could not load polyps: \(error)")
+            showStorageError("Could not load your saved coral polyps.")
         }
     }
     private func saveFocusSessions() {
@@ -263,6 +279,9 @@ struct ContentView: View {
             try sessionStorage.save(focusSessions)
         } catch {
             print("Could not save focus sessions: \(error)")
+            showStorageError(
+                "Could not save your session history. The new record is still in memory."
+            )
         }
     }
 
@@ -271,7 +290,13 @@ struct ContentView: View {
             focusSessions = try sessionStorage.load()
         } catch {
             print("Could not load focus sessions: \(error)")
+            showStorageError("Could not load your saved session history.")
         }
+    }
+    
+    private func showStorageError(_ message: String) {
+        storageErrorMessage = message
+        isShowingStorageError = true
     }
 }
 
