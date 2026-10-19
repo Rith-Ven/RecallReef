@@ -74,6 +74,23 @@ def insert_polyp_row(
         """, (polyp_id, task_title, stopping_point, next_step))
 
 
+def update_polyp_row(
+    polyp_id: str,
+    task_title: str,
+    stopping_point: str,
+    next_step: str,
+) -> bool:
+    with database_connection() as connection:
+        # Update only the record with this ID.
+        cursor = connection.execute("""
+            UPDATE polyps
+            SET task_title = ?, stopping_point = ?, next_step = ?
+            WHERE id = ?
+        """, (task_title, stopping_point, next_step, polyp_id))
+
+        # False means no matching record exists.
+        return cursor.rowcount > 0
+
 def delete_polyp_row(polyp_id: str) -> bool:
     with database_connection() as connection:
         # Delete only the row matching this ID.
