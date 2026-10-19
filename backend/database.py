@@ -73,6 +73,18 @@ def insert_polyp_row(
             VALUES (?, ?, ?, ?)
         """, (polyp_id, task_title, stopping_point, next_step))
 
+
+def delete_polyp_row(polyp_id: str) -> bool:
+    with database_connection() as connection:
+        # Delete only the row matching this ID.
+        cursor = connection.execute(
+            "DELETE FROM polyps WHERE id = ?",
+            (polyp_id,),
+        )
+
+        # Report whether a row was actually deleted.
+        return cursor.rowcount > 0
+
 # Allow this file to be run directly for setup.
 if __name__ == "__main__":
     initialize_database()

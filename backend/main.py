@@ -2,7 +2,7 @@ import sqlite3
 from contextlib import asynccontextmanager
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel
 
 from database import (
@@ -10,6 +10,7 @@ from database import (
     fetch_polyp_rows,
     insert_polyp_row,
     update_polyp_row,
+    delete_polyp_row,
 )
 
 
