@@ -1,13 +1,29 @@
+import sqlite3
+from contextlib import asynccontextmanager
 from uuid import UUID
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-# Create the API application.
-app = FastAPI(title="Recall Reef API")
+from database import (
+    initialize_database,
+    fetch_polyp_rows,
+    insert_polyp_row,
+    update_polyp_row,
+)
 
 
-# Describe the fields in a coral polyp.
+# Prepare the database before accepting requests.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    initialize_database()
+    yield
+
+
+app = FastAPI(title="Recall Reef API", lifespan=lifespan)
+
+
+# Keep the existing JSON format expected by Swift.
 class CoralPolyp(BaseModel):
     id: UUID
     taskTitle: str
@@ -15,33 +31,8 @@ class CoralPolyp(BaseModel):
     nextStep: str
 
 
-# Temporary sample data, independent of the iOS app.
-sample_polyps = [
-    CoralPolyp(
-        id=UUID("d13ad2b0-72c8-4ef7-9316-b91caf386142"),
-        taskTitle="Learn how APIs work",
-        stoppingPoint="Practiced state and bindings.",
-        nextStep="Connect the app to the backend.",
-    )
-]
-
-
-# Check that the application can respond.
-@app.get("/health")
-def check_health():
-    return {"status": "ok"}
-
-
-# Return a collection of coral polyps.
-@app.get("/polyps")
-def get_polyps() -> list[CoralPolyp]:
-    return sample_polyps
-
-
-# Accept a polyp from the request's JSON body.
-@app.post("/polyps", status_code=201)
-def create_polyp(polyp: CoralPolyp) -> CoralPolyp:
-    # Reject titles that are empty or contain only whitespace.
+# Share title validation between creation and updates.
+def validate_title(polyp: CoralPolyp):
     polyp.taskTitle = polyp.taskTitle.strip()
 
     if not polyp.taskTitle:
@@ -50,46 +41,76 @@ def create_polyp(polyp: CoralPolyp) -> CoralPolyp:
             detail="Task title must not be blank.",
         )
 
-    # Reject an ID already used by another record.
-    for existing_polyp in sample_polyps:
-        if existing_polyp.id == polyp.id:
+
+@app.get("/health")
+def check_health():
+    return {"status": "ok"}
+
+
+@app.get("/polyps")
+def get_polyps() -> list[CoralPolyp]:
+    rows = fetch_polyp_rows()
+
+    # Map database column names to the API's field names.
+    return [
+        CoralPolyp(
+            id=row["id"],
+            taskTitle=row["task_title"],
+            stoppingPoint=row["stopping_point"],
+            nextStep=row["next_step"],
+        )
+        for row in rows
+    ]
+
+
+@app.post("/polyps", status_code=201)
+def create_polyp(polyp: CoralPolyp) -> CoralPolyp:
+    validate_title(polyp)
+
+    try:
+        # SQLite stores the UUID as text.
+        insert_polyp_row(
+            str(polyp.id),
+            polyp.taskTitle,
+            polyp.stoppingPoint,
+            polyp.nextStep,
+        )
+    except sqlite3.IntegrityError as error:
+        # Translate a duplicate primary key into an HTTP conflict.
+        if error.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY:
             raise HTTPException(
                 status_code=409,
                 detail="A polyp with this ID already exists.",
-            )
+            ) from error
 
-    # Store the record in the server's temporary list.
-    sample_polyps.append(polyp)
+        # Other constraint failures are unexpected server errors.
+        raise
 
-    # Return the record that was created.
     return polyp
 
 
-# Replace the editable fields of an existing polyp.
 @app.put("/polyps/{polyp_id}")
 def update_polyp(polyp_id: UUID, polyp: CoralPolyp) -> CoralPolyp:
-    # The URL and body must identify the same record.
     if polyp_id != polyp.id:
         raise HTTPException(
             status_code=422,
             detail="The URL ID and polyp ID must match.",
         )
 
-    polyp.taskTitle = polyp.taskTitle.strip()
+    validate_title(polyp)
 
-    if not polyp.taskTitle:
+    # The helper reports whether a matching row was found.
+    was_updated = update_polyp_row(
+        str(polyp_id),
+        polyp.taskTitle,
+        polyp.stoppingPoint,
+        polyp.nextStep,
+    )
+
+    if not was_updated:
         raise HTTPException(
-            status_code=422,
-            detail="Task title must not be blank.",
+            status_code=404,
+            detail="No polyp with this ID exists.",
         )
 
-    # Replace the matching record in the temporary collection.
-    for index, existing_polyp in enumerate(sample_polyps):
-        if existing_polyp.id == polyp_id:
-            sample_polyps[index] = polyp
-            return polyp
-
-    raise HTTPException(
-        status_code=404,
-        detail="No polyp with this ID exists.",
-    )
+    return polyp
