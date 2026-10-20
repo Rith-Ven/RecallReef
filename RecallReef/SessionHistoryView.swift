@@ -12,6 +12,11 @@ struct SessionHistoryView: View {
 
     // Receives a read-only array from the parent
     let sessions: [FocusSession]
+    
+    // The parent supplies the networking action and its status.
+    let onUpload: (FocusSession) -> Void
+    let isUploading: Bool
+    let uploadMessage: String
 
     var body: some View {
         NavigationStack {
@@ -19,6 +24,16 @@ struct SessionHistoryView: View {
             List {
                 if sessions.isEmpty {
                     Text("Your finished focus sessions will appear here.")
+                        .foregroundStyle(.secondary)
+                }
+                // Display upload feedback
+                if isUploading {
+                    ProgressView("Uploading session")
+                }
+
+                if !uploadMessage.isEmpty {
+                    Text(uploadMessage)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
@@ -52,6 +67,13 @@ struct SessionHistoryView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     }
+                    
+                    Button("Upload session") {
+                        onUpload(session)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isUploading)
+                    
                     .padding(.vertical, 4)
                 }
             }
@@ -68,5 +90,10 @@ struct SessionHistoryView: View {
 }
 
 #Preview {
-    SessionHistoryView(sessions: [])
+    SessionHistoryView(
+        sessions: [],
+        onUpload: { _ in },
+        isUploading: false,
+        uploadMessage: ""
+    )
 }

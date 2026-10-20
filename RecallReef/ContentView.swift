@@ -81,6 +81,9 @@ struct ContentView: View {
     @State private var isShowingBackendDeleteConfirmation = false
     @State private var backendPolypIDToDelete: UUID?
     
+    @State private var isUploadingSession = false
+    @State private var sessionUploadMessage = ""
+    
     // ---------------------------------
     var body: some View {
         VStack {
@@ -335,7 +338,16 @@ struct ContentView: View {
             Text(storageErrorMessage)
         }
         .sheet(isPresented: $isShowingSessionHistory) {
-            SessionHistoryView(sessions: focusSessions)
+            SessionHistoryView(
+                sessions: focusSessions,
+                onUpload: { session in
+                    Task {
+                        await uploadSession(session)
+                    }
+                },
+                isUploading: isUploadingSession,
+                uploadMessage: sessionUploadMessage
+            )
         }
         .alert(
             "Delete the backend copy?",
@@ -540,6 +552,26 @@ struct ContentView: View {
         }
     }
     
+    @MainActor
+    private func uploadSession(_ session: FocusSession) async {
+        isUploadingSession = true
+        sessionUploadMessage = "Uploading..."
+
+        // Clear loading whether the request succeeds or fails.
+        defer {
+            isUploadingSession = false
+        }
+
+        do {
+            // Send this existing record, preserving its session ID.
+            let createdSession = try await apiClient.createSession(session)
+
+            sessionUploadMessage = "Uploaded: \(createdSession.taskTitle)"
+        } catch {
+            sessionUploadMessage = "Upload failed: \(error.localizedDescription)"
+            print("Session upload failed: \(error)")
+        }
+    }
     
 }
 
