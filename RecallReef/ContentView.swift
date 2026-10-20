@@ -84,6 +84,11 @@ struct ContentView: View {
     @State private var isUploadingSession = false
     @State private var sessionUploadMessage = ""
     
+    // Keep fetched history separate from locally saved sessions.
+    @State private var remoteSessions: [FocusSession] = []
+    @State private var isFetchingSessions = false
+    @State private var sessionFetchMessage = ""
+    @State private var isShowingBackendHistory = false
     // ---------------------------------
     var body: some View {
         VStack {
@@ -112,6 +117,24 @@ struct ContentView: View {
                     }
                     .buttonStyle(.bordered)
                     .disabled(isCheckingBackend)
+                    
+                    Button("Fetch backend session history") {
+                        Task {
+                            await fetchBackendHistory()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isFetchingSessions)
+
+                    if isFetchingSessions {
+                        ProgressView("Fetching history")
+                    }
+
+                    if !sessionFetchMessage.isEmpty {
+                        Text(sessionFetchMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     
                     // Feedback for uploading a local polyp.
                     if isUploadingPolyp {
@@ -369,6 +392,15 @@ struct ContentView: View {
         } message: {
             Text("This deletes the server record. Your local polyp will remain.")
         }
+        .sheet(isPresented: $isShowingBackendHistory) {
+            SessionHistoryView(
+                sessions: remoteSessions,
+                onUpload: { _ in },
+                isUploading: false,
+                uploadMessage: "",
+                showsUploadControls: false
+            )
+        }
     }
     
     
@@ -570,6 +602,27 @@ struct ContentView: View {
         } catch {
             sessionUploadMessage = "Upload failed: \(error.localizedDescription)"
             print("Session upload failed: \(error)")
+        }
+    }
+    // Fetching function
+    @MainActor
+    private func fetchBackendHistory() async {
+        isFetchingSessions = true
+        sessionFetchMessage = ""
+
+        defer {
+            isFetchingSessions = false
+        }
+
+        do {
+            // Replace the preview only after a successful request.
+            remoteSessions = try await apiClient.fetchSessions()
+
+            sessionFetchMessage = "Received \(remoteSessions.count) session(s)."
+            isShowingBackendHistory = true
+        } catch {
+            sessionFetchMessage = "Fetch failed: \(error.localizedDescription)"
+            print("Session history fetch failed: \(error)")
         }
     }
     

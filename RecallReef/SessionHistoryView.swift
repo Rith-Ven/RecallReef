@@ -17,11 +17,15 @@ struct SessionHistoryView: View {
     let onUpload: (FocusSession) -> Void
     let isUploading: Bool
     let uploadMessage: String
+    
+    // Backend records only need to be viewed.
+    var showsUploadControls = true
 
     var body: some View {
         NavigationStack {
             // Displays content in vertically scrolling systems list
             List {
+                
                 if sessions.isEmpty {
                     Text("Your finished focus sessions will appear here.")
                         .foregroundStyle(.secondary)
@@ -67,14 +71,14 @@ struct SessionHistoryView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     }
-                    
-                    Button("Upload session") {
-                        onUpload(session)
+                    if showsUploadControls {
+                        Button("Upload session") {
+                            onUpload(session)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isUploading)
+                        .padding(.vertical, 4)
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(isUploading)
-                    
-                    .padding(.vertical, 4)
                 }
             }
             .navigationTitle("Session history")
