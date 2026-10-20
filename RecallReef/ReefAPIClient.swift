@@ -125,5 +125,28 @@ struct ReefAPIClient {
             from: data
         )
     }
-    
+    // DELETE support
+    func deletePolyp(id: UUID) async throws {
+        // Identify the backend record to delete.
+        guard let url = URL(
+            string: "http://127.0.0.1:8000/polyps/\(id.uuidString)"
+        ) else {
+            throw URLError(.badURL)
+        }
+
+        // The ID is in the URL; no JSON body is needed.
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+
+        let (data, response) = try await URLSession.shared.data(
+            for: request
+        )
+
+        // A successful deletion returns 204 with no body.
+        try validateResponse(
+            response,
+            data: data,
+            expectedStatus: 204
+        )
+    }
 }
