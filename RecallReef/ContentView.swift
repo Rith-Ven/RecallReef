@@ -77,6 +77,10 @@ struct ContentView: View {
     // TEMPORARY CHECK VAR
     @State private var isBackendToolsExpanded = false
 
+    // Backend deletion
+    @State private var isShowingBackendDeleteConfirmation = false
+    @State private var backendPolypIDToDelete: UUID?
+    
     // ---------------------------------
     var body: some View {
         VStack {
@@ -217,6 +221,14 @@ struct ContentView: View {
                                     .buttonStyle(.bordered)
                                     .disabled(isUploadingPolyp)
                                     
+                                    
+                                    Button("Delete backend copy", role: .destructive) {
+                                        backendPolypIDToDelete = polyp.id
+                                        isShowingBackendDeleteConfirmation = true
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(isUploadingPolyp)
+                                    
                                     Button("Delete polyp", role: .destructive) {
                                         polypIDToDelete = polyp.id
                                         isShowingDeleteConfirmation = true
@@ -324,6 +336,26 @@ struct ContentView: View {
         }
         .sheet(isPresented: $isShowingSessionHistory) {
             SessionHistoryView(sessions: focusSessions)
+        }
+        .alert(
+            "Delete the backend copy?",
+            isPresented: $isShowingBackendDeleteConfirmation
+        ) {
+            Button("Delete backend copy", role: .destructive) {
+                if let id = backendPolypIDToDelete {
+                    Task {
+                        await deleteBackendPolyp(id: id)
+                    }
+                }
+
+                backendPolypIDToDelete = nil
+            }
+
+            Button("Cancel", role: .cancel) {
+                backendPolypIDToDelete = nil
+            }
+        } message: {
+            Text("This deletes the server record. Your local polyp will remain.")
         }
     }
     
@@ -482,6 +514,29 @@ struct ContentView: View {
         } catch {
             uploadMessage = "Update failed: \(error.localizedDescription)"
             print("Backend update failed: \(error)")
+        }
+    }
+    // Backend-delete helper
+    @MainActor
+    private func deleteBackendPolyp(id: UUID) async {
+        // Reuse the flag that prevents overlapping backend writes.
+        isUploadingPolyp = true
+        uploadMessage = "Deleting backend copy..."
+
+        defer {
+            isUploadingPolyp = false
+        }
+
+        do {
+            try await apiClient.deletePolyp(id: id)
+
+            // Remove the deleted record from the displayed backend preview.
+            remotePolyps.removeAll { $0.id == id }
+
+            uploadMessage = "Backend copy deleted. Local polyp kept."
+        } catch {
+            uploadMessage = "Deletion failed: \(error.localizedDescription)"
+            print("Backend deletion failed: \(error)")
         }
     }
     
