@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import AwareDatetime, BaseModel, Field
+from datetime import timezone
 
 from database import (
     initialize_database,
@@ -11,6 +12,8 @@ from database import (
     insert_polyp_row,
     update_polyp_row,
     delete_polyp_row,
+    fetch_focus_session_rows,
+    insert_focus_session_row,
 )
 
 
@@ -142,3 +145,63 @@ def delete_polyp(polyp_id: UUID) -> Response:
 
     # Success with no response body.
     return Response(status_code=204)
+
+
+@app.get("/sessions")
+def get_sessions() -> list[FocusSession]:
+    rows = fetch_focus_session_rows()
+
+    # Translate database columns into API fields.
+    sessions = [
+        FocusSession(
+            id=row["id"],
+            polypID=row["polyp_id"],
+            taskTitle=row["task_title"],
+            startedAt=row["started_at"],
+            focusedSeconds=row["focused_seconds"],
+            completedFullTimer=bool(row["completed_full_timer"]),
+        )
+        for row in rows
+    ]
+
+    # Return newest sessions first, based on their actual start time.
+    return sorted(
+        sessions,
+        key=lambda session: session.startedAt,
+        reverse=True,
+    )
+
+@app.post("/sessions", status_code=201)
+def create_session(session: FocusSession) -> FocusSession:
+    # Preserve a readable historical task title.
+    session.taskTitle = session.taskTitle.strip()
+
+    if not session.taskTitle:
+        raise HTTPException(
+            status_code=422,
+            detail="Task title must not be blank.",
+        )
+
+    # Normalize timestamps to UTC before storing them.
+    session.startedAt = session.startedAt.astimezone(timezone.utc)
+
+    try:
+        insert_focus_session_row(
+            str(session.id),
+            str(session.polypID),
+            session.taskTitle,
+            session.startedAt.isoformat(),
+            session.focusedSeconds,
+            session.completedFullTimer,
+        )
+    except sqlite3.IntegrityError as error:
+        # Reject uploading the same session record twice.
+        if error.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY:
+            raise HTTPException(
+                status_code=409,
+                detail="A session with this ID already exists.",
+            ) from error
+
+        raise
+
+    return session
