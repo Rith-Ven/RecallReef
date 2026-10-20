@@ -116,7 +116,56 @@ def delete_polyp_row(polyp_id: str) -> bool:
         # True means a matching row was removed.
         return cursor.rowcount > 0
 
+# Save a focus session.
+def insert_focus_session_row(
+    session_id: str,
+    polyp_id: str,
+    task_title: str,
+    started_at: str,
+    focused_seconds: int,
+    completed_full_timer: bool,
+):
+    with database_connection() as connection:
+        # Insert one historical session, preserving its original ID.
+        connection.execute("""
+            INSERT INTO focus_sessions (
+                id,
+                polyp_id,
+                task_title,
+                started_at,
+                focused_seconds,
+                completed_full_timer
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            session_id,
+            polyp_id,
+            task_title,
+            started_at,
+            focused_seconds,
+            int(completed_full_timer),
+        ))
 
+# Read a focus session.
+def fetch_focus_session_rows():
+    with database_connection() as connection:
+        # Retrieve historical records from the database.
+        rows = connection.execute("""
+            SELECT
+                id,
+                polyp_id,
+                task_title,
+                started_at,
+                focused_seconds,
+                completed_full_timer
+            FROM focus_sessions
+            ORDER BY rowid
+        """).fetchall()
+
+        # Return values that remain usable after closing the connection.
+        return [dict(row) for row in rows]
+
+    
 # Allow this file to be run directly for setup.
 if __name__ == "__main__":
     initialize_database()
