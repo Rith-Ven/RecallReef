@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Response
-from pydantic import BaseModel
+from pydantic import AwareDatetime, BaseModel, Field
 
 from database import (
     initialize_database,
@@ -31,6 +31,17 @@ class CoralPolyp(BaseModel):
     stoppingPoint: str
     nextStep: str
 
+# Describe a completed focus attempt.
+class FocusSession(BaseModel):
+    id: UUID
+    polypID: UUID
+    taskTitle: str
+    startedAt: AwareDatetime
+
+    # Focused time cannot be negative.
+    focusedSeconds: int = Field(ge=0)
+
+    completedFullTimer: bool
 
 # Share title validation between creation and updates.
 def validate_title(polyp: CoralPolyp):

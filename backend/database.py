@@ -23,6 +23,20 @@ def initialize_database():
                 next_step TEXT NOT NULL
             )
         """)
+        # Store historical sessions separately from editable polyps.
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS focus_sessions (
+                id TEXT PRIMARY KEY NOT NULL,
+                polyp_id TEXT NOT NULL,
+                task_title TEXT NOT NULL,
+                started_at TEXT NOT NULL,
+                focused_seconds INTEGER NOT NULL
+                    CHECK (focused_seconds >= 0),
+                completed_full_timer INTEGER NOT NULL
+                    CHECK (completed_full_timer IN (0, 1))
+            )
+        """)
+
 
         connection.commit()
     finally:
