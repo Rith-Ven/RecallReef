@@ -115,3 +115,19 @@ def update_polyp(polyp_id: UUID, polyp: CoralPolyp) -> CoralPolyp:
         )
 
     return polyp
+
+
+
+# Handle DELETE requests for one backend polyp.
+@app.delete("/polyps/{polyp_id}", status_code=204)
+def delete_polyp(polyp_id: UUID) -> Response:
+    was_deleted = delete_polyp_row(str(polyp_id))
+
+    if not was_deleted:
+        raise HTTPException(
+            status_code=404,
+            detail="No polyp with this ID exists.",
+        )
+
+    # Success with no response body.
+    return Response(status_code=204)

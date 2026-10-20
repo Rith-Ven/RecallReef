@@ -93,14 +93,15 @@ def update_polyp_row(
 
 def delete_polyp_row(polyp_id: str) -> bool:
     with database_connection() as connection:
-        # Delete only the row matching this ID.
+        # Delete only the row with the supplied ID.
         cursor = connection.execute(
             "DELETE FROM polyps WHERE id = ?",
             (polyp_id,),
         )
 
-        # Report whether a row was actually deleted.
+        # True means a matching row was removed.
         return cursor.rowcount > 0
+
 
 # Allow this file to be run directly for setup.
 if __name__ == "__main__":
