@@ -148,9 +148,12 @@ def delete_polyp(polyp_id: UUID) -> Response:
 
 
 @app.get("/sessions")
-def get_sessions() -> list[FocusSession]:
-    rows = fetch_focus_session_rows()
+def get_sessions(polyp_id: UUID | None = None) -> list[FocusSession]:
+    # Pass the optional filter to the database helper.
+    database_polyp_id = str(polyp_id) if polyp_id is not None else None
+    rows = fetch_focus_session_rows(database_polyp_id)
 
+    # Keep your existing model conversion and sorting below.
     # Translate database columns into API fields.
     sessions = [
         FocusSession(

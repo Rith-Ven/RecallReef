@@ -147,10 +147,9 @@ def insert_focus_session_row(
         ))
 
 # Read a focus session.
-def fetch_focus_session_rows():
+def fetch_focus_session_rows(polyp_id: str | None = None):
     with database_connection() as connection:
-        # Retrieve historical records from the database.
-        rows = connection.execute("""
+        query = """
             SELECT
                 id,
                 polyp_id,
@@ -159,13 +158,20 @@ def fetch_focus_session_rows():
                 focused_seconds,
                 completed_full_timer
             FROM focus_sessions
-            ORDER BY rowid
-        """).fetchall()
+        """
 
-        # Return values that remain usable after closing the connection.
+        parameters = ()
+
+        # Apply an optional filter using a bound parameter.
+        if polyp_id is not None:
+            query += " WHERE polyp_id = ?"
+            parameters = (polyp_id,)
+
+        query += " ORDER BY rowid"
+
+        rows = connection.execute(query, parameters).fetchall()
         return [dict(row) for row in rows]
-
-    
+       
 # Allow this file to be run directly for setup.
 if __name__ == "__main__":
     initialize_database()
