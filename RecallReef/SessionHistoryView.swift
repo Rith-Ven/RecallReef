@@ -20,11 +20,35 @@ struct SessionHistoryView: View {
     let isUploading: Bool
     let uploadMessage: String
     
-
+    private var totalFocusedSeconds: Int {
+        // Add the duration of every session shown on this screen.
+        sessions.reduce(0) { total, session in
+            total + session.focusedSeconds
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             // Displays content in vertically scrolling systems list
             List {
+                Section("Overview") {
+                    HStack {
+                        Text("Sessions")
+                        Spacer()
+                        Text("\(sessions.count)")
+                    }
+
+                    HStack {
+                        Text("Focused time")
+                        Spacer()
+
+                        Text(
+                            "\(totalFocusedSeconds / 3600) hr "
+                            + "\((totalFocusedSeconds % 3600) / 60) min "
+                            + "\(totalFocusedSeconds % 60) sec"
+                        )
+                    }
+                }
                 
                 if sessions.isEmpty {
                     Text("Your finished focus sessions will appear here.")
@@ -94,7 +118,15 @@ struct SessionHistoryView: View {
 
 #Preview {
     SessionHistoryView(
-        sessions: [],
+        sessions: [
+            FocusSession(
+                polypID: UUID(),
+                taskTitle: "Summary test",
+                startedAt: Date(),
+                focusedSeconds: 3725,
+                completedFullTimer: false
+            )
+        ],
         isUploading: false,
         uploadMessage: ""
     )
