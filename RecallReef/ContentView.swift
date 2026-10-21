@@ -62,7 +62,9 @@ struct ContentView: View {
     //----------backend-------------
     
     // Call API from app
-    private let apiClient = ReefAPIClient()
+    private let apiClient = ReefAPIClient(
+        baseURL: URL(string: "http://127.0.0.1:8000")!
+        )
     
     @State private var isCheckingBackend = false
     @State private var backendMessage = ""

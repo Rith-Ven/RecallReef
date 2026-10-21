@@ -8,13 +8,16 @@
 import Foundation
 
 struct ReefAPIClient {
+    // For backend address needs valid url
+    private let baseURL: URL
+
+    init(baseURL: URL) {
+        self.baseURL = baseURL
+    }
+    
     func fetchPolyps() async throws -> [CoralPolyp] {
         // Address of the backend running on Mac
-        guard let url = URL(
-            string: "http://127.0.0.1:8000/polyps"
-        ) else {
-            throw URLError(.badURL)
-        }
+        let url = baseURL.appendingPathComponent("polyps")
         
         // Send a GET request and wait for the response
         let (data, response) = try await URLSession.shared.data(from: url)
@@ -32,11 +35,7 @@ struct ReefAPIClient {
     }
     // Send a POST request
     func createPolyp(_ polyp: CoralPolyp) async throws -> CoralPolyp {
-        guard let url = URL(
-            string: "http://127.0.0.1:8000/polyps"
-        ) else {
-            throw URLError(.badURL)
-        }
+       let url = baseURL.appendingPathComponent("polyps")
         
         // Configure a request that sends JSON to the server
         var request = URLRequest(url: url)
@@ -93,12 +92,10 @@ struct ReefAPIClient {
     }
     // Swift PUT function
     func updatePolyp(_ polyp: CoralPolyp) async throws -> CoralPolyp {
-        // Identify the record to replace in the URL.
-        guard let url = URL(
-            string: "http://127.0.0.1:8000/polyps/\(polyp.id.uuidString)"
-        ) else {
-            throw URLError(.badURL)
-        }
+        // Build resource path from the shared server address.
+        let url = baseURL
+            .appendingPathComponent("polyps")
+            .appendingPathComponent(polyp.id.uuidString)
         
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
@@ -128,11 +125,9 @@ struct ReefAPIClient {
     // DELETE support
     func deletePolyp(id: UUID) async throws {
         // Identify the backend record to delete.
-        guard let url = URL(
-            string: "http://127.0.0.1:8000/polyps/\(id.uuidString)"
-        ) else {
-            throw URLError(.badURL)
-        }
+        let url = baseURL
+            .appendingPathComponent( "polyps" )
+            .appendingPathComponent(id.uuidString)
         
         // The ID is in the URL; no JSON body is needed.
         var request = URLRequest(url: url)
@@ -184,11 +179,7 @@ struct ReefAPIClient {
     }
     // Upload function
     func createSession(_ session: FocusSession) async throws -> FocusSession {
-        guard let url = URL(
-            string: "http://127.0.0.1:8000/sessions"
-        ) else {
-            throw URLError(.badURL)
-        }
+        let url = baseURL.appendingPathComponent("sessions")
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -220,11 +211,7 @@ struct ReefAPIClient {
     }
     // Session fetching.
     func fetchSessions() async throws -> [FocusSession] {
-        guard let url = URL(
-            string: "http://127.0.0.1:8000/sessions"
-        ) else {
-            throw URLError(.badURL)
-        }
+        let url = baseURL.appendingPathComponent("sessions")
 
         // GET returns the backend's session collection.
         let (data, response) = try await URLSession.shared.data(
