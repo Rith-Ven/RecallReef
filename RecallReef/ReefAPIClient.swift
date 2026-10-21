@@ -210,10 +210,30 @@ struct ReefAPIClient {
         )
     }
     // Session fetching.
-    func fetchSessions() async throws -> [FocusSession] {
-        let url = baseURL.appendingPathComponent("sessions")
+    func fetchSessions(polypID: UUID? = nil) async throws -> [FocusSession] {
+        // Build the endpoint with an optional query parameter.
+        let endpoint = baseURL.appendingPathComponent("sessions")
 
-        // GET returns the backend's session collection.
+        guard var components = URLComponents(
+            url: endpoint,
+            resolvingAgainstBaseURL: false
+        ) else {
+            throw URLError(.badURL)
+        }
+
+        if let polypID {
+            components.queryItems = [
+                URLQueryItem(
+                    name: "polyp_id",
+                    value: polypID.uuidString
+                )
+            ]
+        }
+
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+
         let (data, response) = try await URLSession.shared.data(
             from: url
         )
@@ -228,5 +248,4 @@ struct ReefAPIClient {
             [FocusSession].self,
             from: data
         )
-    }
-}
+    }}

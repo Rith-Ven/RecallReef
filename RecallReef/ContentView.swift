@@ -95,6 +95,9 @@ struct ContentView: View {
     
     @State private var sessionImportMessage = ""
     
+    // Keep task-specific results separate from the full backend history.
+    @State private var taskBackendSessions: [FocusSession] = []
+    @State private var isShowingTaskBackendHistory = false
     // ---------------------------------
     var body: some View {
         VStack {
@@ -266,6 +269,14 @@ struct ContentView: View {
                                     .buttonStyle(.borderedProminent)
                                     .tint(.teal)
                                     
+                                    Button("View backend sessions") {
+                                        Task {
+                                            await fetchTaskBackendHistory(polypID: polyp.id)
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(isFetchingSessions)
+                                    
                                     // Add button to upload
                                     Button("Upload to backend") {
                                         Task {
@@ -431,6 +442,13 @@ struct ContentView: View {
         .sheet(isPresented: $isShowingBackendHistory) {
             SessionHistoryView(
                 sessions: remoteSessions,
+                isUploading: false,
+                uploadMessage: ""
+            )
+        }
+        .sheet(isPresented: $isShowingTaskBackendHistory) {
+            SessionHistoryView(
+                sessions: taskBackendSessions,
                 isUploading: false,
                 uploadMessage: ""
             )
@@ -743,6 +761,37 @@ struct ContentView: View {
         sessionImportMessage =
             "Added \(newSessions.count) session(s) to local history."
     }
+    // Prevent overlapping history fetches.
+    @MainActor
+    private func fetchTaskBackendHistory(polypID: UUID) async {
+        guard !isFetchingSessions else {
+            return
+        }
+
+        isFetchingSessions = true
+        sessionFetchMessage = "Fetching task history..."
+
+        defer {
+            isFetchingSessions = false
+        }
+
+        do {
+            // Request only sessions associated with this polyp.
+            taskBackendSessions = try await apiClient.fetchSessions(
+                polypID: polypID
+            )
+
+            sessionFetchMessage =
+                "Received \(taskBackendSessions.count) session(s) for this task."
+
+            isShowingTaskBackendHistory = true
+        } catch {
+            sessionFetchMessage =
+                "Fetch failed: \(error.localizedDescription)"
+            print("Task history fetch failed: \(error)")
+        }
+    }
+    
     
 }
 
