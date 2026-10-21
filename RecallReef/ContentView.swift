@@ -89,6 +89,10 @@ struct ContentView: View {
     @State private var isFetchingSessions = false
     @State private var sessionFetchMessage = ""
     @State private var isShowingBackendHistory = false
+    
+    
+    @State private var sessionImportMessage = ""
+    
     // ---------------------------------
     var body: some View {
         VStack {
@@ -132,6 +136,20 @@ struct ContentView: View {
 
                     if !sessionFetchMessage.isEmpty {
                         Text(sessionFetchMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    if !remoteSessions.isEmpty {
+                        Button("Import fetched sessions") {
+                            importBackendSessions()
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isFetchingSessions || !canSaveFocusSessions)
+                    }
+
+                    if !sessionImportMessage.isEmpty {
+                        Text(sessionImportMessage)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -605,6 +623,8 @@ struct ContentView: View {
     // Fetching function
     @MainActor
     private func fetchBackendHistory() async {
+        // Clear feedback from the previous import.
+        sessionImportMessage = ""
         isFetchingSessions = true
         sessionFetchMessage = ""
 
@@ -622,6 +642,35 @@ struct ContentView: View {
             sessionFetchMessage = "Fetch failed: \(error.localizedDescription)"
             print("Session history fetch failed: \(error)")
         }
+    }
+    
+    private func importBackendSessions() {
+        // Protect local history if its initial load failed.
+        guard canSaveFocusSessions else {
+            showStorageError(
+                "Import is unavailable because local session history could not be loaded."
+            )
+            return
+        }
+
+        // Collect the identities already present on this device.
+        let existingIDs = Set(focusSessions.map { $0.id })
+
+        // Import only records whose IDs are not already present.
+        let newSessions = remoteSessions.filter { session in
+            !existingIDs.contains(session.id)
+        }
+
+        guard !newSessions.isEmpty else {
+            sessionImportMessage = "No new sessions to import."
+            return
+        }
+
+        focusSessions.append(contentsOf: newSessions)
+        saveFocusSessions()
+
+        sessionImportMessage =
+            "Added \(newSessions.count) session(s) to local history."
     }
     
 }
