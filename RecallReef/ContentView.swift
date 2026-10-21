@@ -153,7 +153,23 @@ struct ContentView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    
+                    Button("Upload missing local sessions") {
+                        Task {
+                            await uploadMissingSessions()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isUploadingSession || focusSessions.isEmpty)
+
+                    if isUploadingSession {
+                        ProgressView("Backing up sessions")
+                    }
+
+                    if !sessionUploadMessage.isEmpty {
+                        Text(sessionUploadMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     // Feedback for uploading a local polyp.
                     if isUploadingPolyp {
                         ProgressView("Contacting backend")
@@ -618,6 +634,59 @@ struct ContentView: View {
         } catch {
             sessionUploadMessage = "Upload failed: \(error.localizedDescription)"
             print("Session upload failed: \(error)")
+        }
+    }
+    
+    @MainActor
+    private func uploadMissingSessions() async {
+        // Avoid starting another session upload while one is running.
+        guard !isUploadingSession else {
+            return
+        }
+
+        isUploadingSession = true
+        sessionUploadMessage = "Checking backend history..."
+
+        // Use a snapshot of local history for this operation.
+        let localSessions = focusSessions
+        var uploadedCount = 0
+
+        defer {
+            isUploadingSession = false
+        }
+
+        do {
+            // Determine which session IDs already exist remotely.
+            let backendSessions = try await apiClient.fetchSessions()
+            let backendIDs = Set(backendSessions.map { $0.id })
+
+            let missingSessions = localSessions.filter { session in
+                !backendIDs.contains(session.id)
+            }
+
+            guard !missingSessions.isEmpty else {
+                sessionUploadMessage =
+                    "All local sessions already exist on the backend."
+                return
+            }
+
+            // Wait for each upload before starting the next.
+            for session in missingSessions {
+                _ = try await apiClient.createSession(session)
+                uploadedCount += 1
+
+                sessionUploadMessage =
+                    "Uploaded \(uploadedCount) of \(missingSessions.count) sessions."
+            }
+
+            sessionUploadMessage =
+                "Finished uploading \(uploadedCount) session(s)."
+        } catch {
+            // Earlier successful uploads remain stored on the backend.
+            sessionUploadMessage =
+                "Stopped after \(uploadedCount) upload(s): \(error.localizedDescription)"
+
+            print("Session backup failed: \(error)")
         }
     }
     // Fetching function
