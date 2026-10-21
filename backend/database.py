@@ -37,6 +37,15 @@ def initialize_database():
             )
         """)
 
+        # Store account identities and password hashes.
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY NOT NULL,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL
+            )
+        """)
+
 
         connection.commit()
     finally:
