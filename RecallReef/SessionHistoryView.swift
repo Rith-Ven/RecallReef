@@ -14,12 +14,12 @@ struct SessionHistoryView: View {
     let sessions: [FocusSession]
     
     // The parent supplies the networking action and its status.
-    let onUpload: (FocusSession) -> Void
+    // No upload action means this screen is read-only.
+    var onUpload: ((FocusSession) -> Void)? = nil
+    
     let isUploading: Bool
     let uploadMessage: String
     
-    // Backend records only need to be viewed.
-    var showsUploadControls = true
 
     var body: some View {
         NavigationStack {
@@ -71,13 +71,12 @@ struct SessionHistoryView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     }
-                    if showsUploadControls {
+                    if let onUpload {
                         Button("Upload session") {
                             onUpload(session)
                         }
                         .buttonStyle(.bordered)
                         .disabled(isUploading)
-                        .padding(.vertical, 4)
                     }
                 }
             }
@@ -96,7 +95,6 @@ struct SessionHistoryView: View {
 #Preview {
     SessionHistoryView(
         sessions: [],
-        onUpload: { _ in },
         isUploading: false,
         uploadMessage: ""
     )

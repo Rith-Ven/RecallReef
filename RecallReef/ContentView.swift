@@ -395,10 +395,8 @@ struct ContentView: View {
         .sheet(isPresented: $isShowingBackendHistory) {
             SessionHistoryView(
                 sessions: remoteSessions,
-                onUpload: { _ in },
                 isUploading: false,
-                uploadMessage: "",
-                showsUploadControls: false
+                uploadMessage: ""
             )
         }
     }
