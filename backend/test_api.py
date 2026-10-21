@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 import database
 from main import app
+from datetime import timezone
 
 
 def test_polyp_survives_app_restart(tmp_path, monkeypatch):
