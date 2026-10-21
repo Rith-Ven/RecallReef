@@ -30,3 +30,94 @@ def test_polyp_survives_app_restart(tmp_path, monkeypatch):
 
         assert response.status_code == 200
         assert response.json() == [polyp]
+
+
+def test_session_persistence_and_validation(tmp_path, monkeypatch):
+    # Isolate this test from real records and other tests.
+    test_database = tmp_path / "test_sessions.db"
+    monkeypatch.setattr(database, "DATABASE_PATH", test_database)
+
+    session = {
+        "id": "739e0c2b-c1dc-4fa8-a832-07ce3daea8d0",
+        "polypID": "b39b036c-4158-4d79-a263-8d573156f728",
+        "taskTitle": "Study Swift",
+        "startedAt": "2026-10-20T14:00:00Z",
+        "focusedSeconds": 300,
+        "completedFullTimer": False,
+    }
+
+    with TestClient(app) as client:
+        # A new session should be accepted.
+        created = client.post("/sessions", json=session)
+        assert created.status_code == 201
+
+        # Preserve the server's timestamp representation for comparison.
+        saved_session = created.json()
+
+        # The same session ID must not create another record.
+        duplicate = client.post("/sessions", json=session)
+        assert duplicate.status_code == 409
+
+        # Give invalid input its own ID to isolate duration validation.
+        invalid_session = {
+            **session,
+            "id": "8ef7e53b-b296-42bb-a903-33546bcf6782",
+            "focusedSeconds": -5,
+        }
+
+        invalid = client.post("/sessions", json=invalid_session)
+        assert invalid.status_code == 422
+
+        # Neither rejected request should add a row.
+        history = client.get("/sessions")
+        assert history.status_code == 200
+        assert history.json() == [saved_session]
+
+    # Reopen the application using the same temporary database.
+    with TestClient(app) as client:
+        history = client.get("/sessions")
+        assert history.status_code == 200
+        assert history.json() == [saved_session]
+
+def test_sessions_are_sorted_by_actual_start_time(tmp_path, monkeypatch):
+    # Use a separate database for this test.
+    monkeypatch.setattr(
+        database,
+        "DATABASE_PATH",
+        tmp_path / "session_order.db",
+    )
+
+    earlier_session = {
+        "id": "6c5b48dc-917a-4e16-8d34-1ed92dca5a51",
+        "polypID": "b39b036c-4158-4d79-a263-8d573156f728",
+        "taskTitle": "Earlier session",
+        "startedAt": "2026-10-21T14:00:00+02:00",
+        "focusedSeconds": 300,
+        "completedFullTimer": False,
+    }
+
+    later_session = {
+        **earlier_session,
+        "id": "ac519c06-8b3d-44b0-a1fd-f9c1f4fba802",
+        "taskTitle": "Later session",
+        "startedAt": "2026-10-21T13:00:00Z",
+    }
+
+    with TestClient(app) as client:
+        # Upload the earlier record first.
+        first = client.post("/sessions", json=earlier_session)
+        second = client.post("/sessions", json=later_session)
+
+        assert first.status_code == 201
+        assert second.status_code == 201
+
+        response = client.get("/sessions")
+        assert response.status_code == 200
+
+        # History must place the later moment first.
+        returned_ids = [session["id"] for session in response.json()]
+
+        assert returned_ids == [
+            later_session["id"],
+            earlier_session["id"],
+        ]
