@@ -10,3 +10,7 @@ __pycache__/
 # Local SQLite data and companion files
 backend/recallreef.db
 backend/recallreef.db-*
+
+# SQLite databases, backups, and companion files
+backend/*.db
+backend/*.db-*

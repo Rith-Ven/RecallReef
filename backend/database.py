@@ -8,6 +8,20 @@ from contextlib import contextmanager
 #Finds the directory containing database.py, regardless of where Terminal is currently located.
 DATABASE_PATH = Path(__file__).resolve().parent / "recallreef.db" # builds db file path  
 
+# Add ownership columns while preserving existing rows.
+def add_ownership_columns(connection):
+    for table in ("polyps", "focus_sessions"):
+        columns = connection.execute(
+            f"PRAGMA table_info({table})"
+        ).fetchall()
+
+        column_names = [column[1] for column in columns]
+
+        if "owner_id" not in column_names:
+            connection.execute(
+                f"ALTER TABLE {table} "
+                "ADD COLUMN owner_id TEXT REFERENCES users(id)"
+            )
 
 def initialize_database():
     # Open the database file, creating it if necessary.
@@ -54,6 +68,9 @@ def initialize_database():
                 expires_at INTEGER NOT NULL
             )
         """)
+
+        # Upgrade existing tables without deleting their records.
+        add_ownership_columns(connection)
 
         connection.commit()
     finally:
