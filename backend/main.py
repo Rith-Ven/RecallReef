@@ -2,12 +2,13 @@ import sqlite3
 from contextlib import asynccontextmanager
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Depends
 from pydantic import AwareDatetime, BaseModel, Field
 from datetime import timezone
 
 # Connect the router
 from auth import router as auth_router
+from auth import get_current_user
 
 from database import (
     initialize_database,
@@ -67,9 +68,12 @@ def check_health():
     return {"status": "ok"}
 
 
+# Return the authenticated user's polyps.
 @app.get("/polyps")
-def get_polyps() -> list[CoralPolyp]:
-    rows = fetch_polyp_rows()
+def get_polyps(
+    user: dict = Depends(get_current_user),
+) -> list[CoralPolyp]:
+    rows = fetch_polyp_rows(user["id"])
 
     # Map database column names to the API's field names.
     return [
@@ -83,13 +87,16 @@ def get_polyps() -> list[CoralPolyp]:
     ]
 
 
+# Create a polyp owned by the authenticated user.
 @app.post("/polyps", status_code=201)
-def create_polyp(polyp: CoralPolyp) -> CoralPolyp:
-    validate_title(polyp)
-
+def create_polyp(
+    polyp: CoralPolyp,
+    user: dict = Depends(get_current_user),
+) -> CoralPolyp:
     try:
         # SQLite stores the UUID as text.
         insert_polyp_row(
+            user["id"],
             str(polyp.id),
             polyp.taskTitle,
             polyp.stoppingPoint,
@@ -109,8 +116,13 @@ def create_polyp(polyp: CoralPolyp) -> CoralPolyp:
     return polyp
 
 
+# Update an existing polyp belonging to this user.
 @app.put("/polyps/{polyp_id}")
-def update_polyp(polyp_id: UUID, polyp: CoralPolyp) -> CoralPolyp:
+def update_polyp(
+    polyp_id: UUID,
+    polyp: CoralPolyp,
+    user: dict = Depends(get_current_user),
+) -> CoralPolyp:
     if polyp_id != polyp.id:
         raise HTTPException(
             status_code=422,
@@ -121,6 +133,7 @@ def update_polyp(polyp_id: UUID, polyp: CoralPolyp) -> CoralPolyp:
 
     # The helper reports whether a matching row was found.
     was_updated = update_polyp_row(
+        user["id"],
         str(polyp_id),
         polyp.taskTitle,
         polyp.stoppingPoint,
@@ -138,10 +151,15 @@ def update_polyp(polyp_id: UUID, polyp: CoralPolyp) -> CoralPolyp:
 
 
 # Handle DELETE requests for one backend polyp.
+# Delete an existing polyp belonging to this user.
 @app.delete("/polyps/{polyp_id}", status_code=204)
-def delete_polyp(polyp_id: UUID) -> Response:
-    was_deleted = delete_polyp_row(str(polyp_id))
+def delete_polyp(
+    polyp_id: UUID,
+    user: dict = Depends(get_current_user),
+) -> Response:
+    was_deleted = delete_polyp_row(user["id"], str(polyp_id))
 
+    # Keep the existing 404 check and 204 response.
     if not was_deleted:
         raise HTTPException(
             status_code=404,

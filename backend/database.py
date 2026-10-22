@@ -96,61 +96,66 @@ def database_connection():
     finally:
         connection.close()
 
-def fetch_polyp_rows():
+# Fetch only the authenticated account's polyps.
+def fetch_polyp_rows(owner_id: str):
     with database_connection() as connection:
-        # Read the stored fields in a predictable order.
         rows = connection.execute("""
             SELECT id, task_title, stopping_point, next_step
             FROM polyps
+            WHERE owner_id = ?
             ORDER BY rowid
-        """).fetchall()
+        """, (owner_id,)).fetchall()
 
-        # Return ordinary dictionaries, independent of the connection.
         return [dict(row) for row in rows]
 
 
+# Create a polyp belonging to the authenticated account.
 def insert_polyp_row(
+    owner_id: str,
     polyp_id: str,
     task_title: str,
     stopping_point: str,
     next_step: str,
 ):
     with database_connection() as connection:
-        # Bind values separately from the SQL statement.
         connection.execute("""
             INSERT INTO polyps (
-                id, task_title, stopping_point, next_step
+                owner_id, id, task_title, stopping_point, next_step
             )
-            VALUES (?, ?, ?, ?)
-        """, (polyp_id, task_title, stopping_point, next_step))
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            owner_id, polyp_id, task_title, stopping_point, next_step
+        ))
 
 
+# Update a polyp only when both its owner and ID match.
 def update_polyp_row(
+    owner_id: str,
     polyp_id: str,
     task_title: str,
     stopping_point: str,
     next_step: str,
 ) -> bool:
     with database_connection() as connection:
-        # Update only the record with this ID.
         cursor = connection.execute("""
             UPDATE polyps
             SET task_title = ?, stopping_point = ?, next_step = ?
-            WHERE id = ?
-        """, (task_title, stopping_point, next_step, polyp_id))
+            WHERE owner_id = ? AND id = ?
+        """, (
+            task_title, stopping_point, next_step, owner_id, polyp_id
+        ))
 
-        # False means no matching record exists.
         return cursor.rowcount > 0
 
-def delete_polyp_row(polyp_id: str) -> bool:
-    with database_connection() as connection:
-        # Delete only the row with the supplied ID.
-        cursor = connection.execute(
-            "DELETE FROM polyps WHERE id = ?",
-            (polyp_id,),
-        )
 
-        # True means a matching row was removed.
+# Delete a polyp only when it belongs to this account.
+def delete_polyp_row(owner_id: str, polyp_id: str) -> bool:
+    with database_connection() as connection:
+        cursor = connection.execute("""
+            DELETE FROM polyps
+            WHERE owner_id = ? AND id = ?
+        """, (owner_id, polyp_id))
+
         return cursor.rowcount > 0
 
 # Save a focus session.

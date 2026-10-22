@@ -19,6 +19,7 @@ def test_polyp_survives_app_restart(tmp_path, monkeypatch):
 
     # First application lifecycle: create the record.
     with TestClient(app) as client:
+        authorize_test_client(client)
         response = client.post("/polyps", json=polyp)
 
         assert response.status_code == 201
@@ -26,6 +27,7 @@ def test_polyp_survives_app_restart(tmp_path, monkeypatch):
 
     # Second lifecycle: reopen the same database and read it.
     with TestClient(app) as client:
+        authorize_test_client(client)
         response = client.get("/polyps")
 
         assert response.status_code == 200
@@ -47,6 +49,7 @@ def test_session_persistence_and_validation(tmp_path, monkeypatch):
     }
 
     with TestClient(app) as client:
+        authorize_test_client(client)
         # A new session should be accepted.
         created = client.post("/sessions", json=session)
         assert created.status_code == 201
@@ -104,6 +107,7 @@ def test_sessions_are_sorted_by_actual_start_time(tmp_path, monkeypatch):
     }
 
     with TestClient(app) as client:
+        authorize_test_client(client)
         # Upload the earlier record first.
         first = client.post("/sessions", json=earlier_session)
         second = client.post("/sessions", json=later_session)
@@ -121,3 +125,19 @@ def test_sessions_are_sorted_by_actual_start_time(tmp_path, monkeypatch):
             later_session["id"],
             earlier_session["id"],
         ]
+
+# Authenticate a test client against its temporary database.
+def authorize_test_client(client):
+    credentials = {
+        "username": "test_learner",
+        "password": "Testing-Reefs-2026!",
+    }
+
+    registered = client.post("/auth/register", json=credentials)
+    assert registered.status_code in (201, 409)
+
+    logged_in = client.post("/auth/login", json=credentials)
+    assert logged_in.status_code == 200
+
+    token = logged_in.json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
