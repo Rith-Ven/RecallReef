@@ -5,7 +5,14 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, SecretStr, field_validator
 from pwdlib import PasswordHash
 
-from database import insert_user_row
+from database import (
+    insert_user_row,
+    fetch_user_by_username,
+    insert_auth_token,
+)
+import hashlib
+import secrets
+import time
 
 # Group account endpoints under /auth.
 router = APIRouter(prefix="/auth", tags=["Accounts"])
@@ -34,6 +41,22 @@ class UserResponse(BaseModel):
     id: UUID
     username: str
 
+# Reuse registration's credential validation and normalization.
+class LoginRequest(RegisterRequest):
+    pass
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+
+TOKEN_LIFETIME_SECONDS = 24 * 60 * 60
+
+# Allow a password verification even when the username is unknown.
+DUMMY_PASSWORD_HASH = password_hasher.hash(
+    "dummy-value-used-only-for-verification"
+)
 
 @router.post("/register", status_code=201, response_model=UserResponse)
 def register(credentials: RegisterRequest) -> UserResponse:
@@ -63,4 +86,48 @@ def register(credentials: RegisterRequest) -> UserResponse:
     return UserResponse(
         id=user_id,
         username=credentials.username,
+    )
+
+@router.post("/login", response_model=TokenResponse)
+def login(credentials: LoginRequest) -> TokenResponse:
+    user = fetch_user_by_username(credentials.username)
+
+    # Use a dummy hash if the username wasn't found.
+    stored_hash = (
+        user["password_hash"]
+        if user is not None
+        else DUMMY_PASSWORD_HASH
+    )
+
+    password_matches = password_hasher.verify(
+        credentials.password.get_secret_value(),
+        stored_hash,
+    )
+
+    # Use the same message for an unknown username or wrong password.
+    if user is None or not password_matches:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid username or password.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Generate an unpredictable token using secure randomness.
+    token = secrets.token_urlsafe(32)
+
+    # Store only its hash so the database doesn't contain usable tokens.
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+    expires_at = int(time.time()) + TOKEN_LIFETIME_SECONDS
+
+    insert_auth_token(
+        token_hash,
+        user["id"],
+        expires_at,
+    )
+
+    return TokenResponse(
+        access_token=token,
+        token_type="bearer",
+        expires_in=TOKEN_LIFETIME_SECONDS,
     )

@@ -46,6 +46,14 @@ def initialize_database():
             )
         """)
 
+        # Store login tokens separately from focus-session history.
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS auth_tokens (
+                token_hash TEXT PRIMARY KEY NOT NULL,
+                user_id TEXT NOT NULL REFERENCES users(id),
+                expires_at INTEGER NOT NULL
+            )
+        """)
 
         connection.commit()
     finally:
@@ -60,6 +68,9 @@ def database_connection():
 
     # Allow reading results by column name.
     connection.row_factory = sqlite3.Row
+
+    # Enforce relationships declared with REFERENCES.
+    connection.execute("PRAGMA foreign_keys = ON")
 
     try:
         # Commit on success; roll back if an exception occurs.
@@ -180,7 +191,37 @@ def fetch_focus_session_rows(polyp_id: str | None = None):
 
         rows = connection.execute(query, parameters).fetchall()
         return [dict(row) for row in rows]
-       
+
+
+def insert_user_row(user_id: str, username: str, password_hash: str):
+    with database_connection() as connection:
+        # Store the hash, never the original password.
+        connection.execute("""
+            INSERT INTO users (id, username, password_hash)
+            VALUES (?, ?, ?)
+        """, (user_id, username, password_hash))
+
+
+def fetch_user_by_username(username: str):
+    with database_connection() as connection:
+        # Login needs the stored hash to verify the supplied password.
+        row = connection.execute("""
+            SELECT id, username, password_hash
+            FROM users
+            WHERE username = ?
+        """, (username,)).fetchone()
+
+        return dict(row) if row is not None else None
+
+
+def insert_auth_token(token_hash: str, user_id: str, expires_at: int):
+    with database_connection() as connection:
+        # Store the verifier, not the reusable token itself.
+        connection.execute("""
+            INSERT INTO auth_tokens (token_hash, user_id, expires_at)
+            VALUES (?, ?, ?)
+        """, (token_hash, user_id, expires_at))
+
 # Allow this file to be run directly for setup.
 if __name__ == "__main__":
     initialize_database()
