@@ -2,7 +2,10 @@ agent-detector==2.0.0
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.15.1
+argon2-cffi==25.1.0
+argon2-cffi-bindings==26.1.0
 certifi==2026.7.22
+cffi==2.1.1
 charset-normalizer==3.5.2
 click==8.5.0
 detect-installer==0.2.1
@@ -15,8 +18,10 @@ fastar==0.12.0
 googleapis-common-protos==1.75.5
 h11==0.16.0
 httpcore==1.0.9
+httpcore2==2.16.0
 httptools==0.9.0
 httpx==0.28.1
+httpx2==2.16.0
 idna==3.20
 iniconfig==2.3.1
 Jinja2==3.1.6
@@ -34,6 +39,8 @@ opentelemetry-semantic-conventions==0.66b1
 packaging==26.3
 pluggy==1.7.0
 protobuf==7.36.2
+pwdlib==0.3.1
+pycparser==3.11
 pydantic==2.14.1
 pydantic-extra-types==2.11.1
 pydantic-settings==2.16.0
@@ -50,6 +57,7 @@ rignore==0.8.1
 sentry-sdk==2.72.0
 shellingham==1.5.4
 starlette==1.8.0
+truststore==0.10.5
 typer==0.27.3
 typing-inspection==0.4.4
 typing_extensions==4.16.0

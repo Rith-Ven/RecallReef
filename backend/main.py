@@ -6,6 +6,9 @@ from fastapi import FastAPI, HTTPException, Response
 from pydantic import AwareDatetime, BaseModel, Field
 from datetime import timezone
 
+# Connect the router
+from auth import router as auth_router
+
 from database import (
     initialize_database,
     fetch_polyp_rows,
@@ -26,6 +29,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Recall Reef API", lifespan=lifespan)
 
+# Register the account routes with the main application.
+app.include_router(auth_router)
 
 # Keep the existing JSON format expected by Swift.
 class CoralPolyp(BaseModel):
