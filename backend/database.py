@@ -222,6 +222,20 @@ def insert_auth_token(token_hash: str, user_id: str, expires_at: int):
             VALUES (?, ?, ?)
         """, (token_hash, user_id, expires_at))
 
+# Conencts a token's userid to the corresponding account
+def fetch_user_for_token(token_hash: str, current_time: int):
+    with database_connection() as connection:
+        # Find the account only if its token has not expired.
+        row = connection.execute("""
+            SELECT users.id, users.username
+            FROM auth_tokens
+            JOIN users ON users.id = auth_tokens.user_id
+            WHERE auth_tokens.token_hash = ?
+              AND auth_tokens.expires_at > ?
+        """, (token_hash, current_time)).fetchone()
+
+        return dict(row) if row is not None else None
+
 # Allow this file to be run directly for setup.
 if __name__ == "__main__":
     initialize_database()

@@ -1,7 +1,9 @@
 import sqlite3
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 from pydantic import BaseModel, Field, SecretStr, field_validator
 from pwdlib import PasswordHash
 
@@ -9,6 +11,7 @@ from database import (
     insert_user_row,
     fetch_user_by_username,
     insert_auth_token,
+    fetch_user_for_token,
 )
 import hashlib
 import secrets
@@ -57,6 +60,38 @@ TOKEN_LIFETIME_SECONDS = 24 * 60 * 60
 DUMMY_PASSWORD_HASH = password_hasher.hash(
     "dummy-value-used-only-for-verification"
 )
+
+
+# Read an Authorization: Bearer ... header.
+bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+):
+    authentication_error = HTTPException(
+        status_code=401,
+        detail="Invalid or expired authentication token.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    if credentials is None:
+        raise authentication_error
+
+    # Hash the submitted token using the same method as login.
+    token_hash = hashlib.sha256(
+        credentials.credentials.encode("utf-8")
+    ).hexdigest()
+
+    user = fetch_user_for_token(
+        token_hash,
+        int(time.time()),
+    )
+
+    if user is None:
+        raise authentication_error
+
+    return user
 
 @router.post("/register", status_code=201, response_model=UserResponse)
 def register(credentials: RegisterRequest) -> UserResponse:
@@ -130,4 +165,14 @@ def login(credentials: LoginRequest) -> TokenResponse:
         access_token=token,
         token_type="bearer",
         expires_in=TOKEN_LIFETIME_SECONDS,
+    )
+
+@router.get("/me", response_model=UserResponse)
+def get_my_account(
+    user: dict = Depends(get_current_user),
+) -> UserResponse:
+    # Return the identity verified by the authentication dependency.
+    return UserResponse(
+        id=user["id"],
+        username=user["username"],
     )
