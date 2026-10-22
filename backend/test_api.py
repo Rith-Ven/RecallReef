@@ -78,6 +78,8 @@ def test_session_persistence_and_validation(tmp_path, monkeypatch):
 
     # Reopen the application using the same temporary database.
     with TestClient(app) as client:
+        authorize_test_client(client)
+        
         history = client.get("/sessions")
         assert history.status_code == 200
         assert history.json() == [saved_session]

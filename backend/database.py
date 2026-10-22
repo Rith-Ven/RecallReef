@@ -159,7 +159,9 @@ def delete_polyp_row(owner_id: str, polyp_id: str) -> bool:
         return cursor.rowcount > 0
 
 # Save a focus session.
+# Store a focus session belonging to the authenticated account.
 def insert_focus_session_row(
+    owner_id: str,
     session_id: str,
     polyp_id: str,
     task_title: str,
@@ -168,9 +170,9 @@ def insert_focus_session_row(
     completed_full_timer: bool,
 ):
     with database_connection() as connection:
-        # Insert one historical session, preserving its original ID.
         connection.execute("""
             INSERT INTO focus_sessions (
+                owner_id,
                 id,
                 polyp_id,
                 task_title,
@@ -178,8 +180,9 @@ def insert_focus_session_row(
                 focused_seconds,
                 completed_full_timer
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
+            owner_id,
             session_id,
             polyp_id,
             task_title,
@@ -189,31 +192,30 @@ def insert_focus_session_row(
         ))
 
 # Read a focus session.
-def fetch_focus_session_rows(polyp_id: str | None = None):
+# Fetch this account's history, optionally filtered by polyp.
+def fetch_focus_session_rows(
+    owner_id: str,
+    polyp_id: str | None = None,
+):
     with database_connection() as connection:
         query = """
             SELECT
-                id,
-                polyp_id,
-                task_title,
-                started_at,
-                focused_seconds,
-                completed_full_timer
+                id, polyp_id, task_title, started_at,
+                focused_seconds, completed_full_timer
             FROM focus_sessions
+            WHERE owner_id = ?
         """
+        parameters = (owner_id,)
 
-        parameters = ()
-
-        # Apply an optional filter using a bound parameter.
+        # A task filter supplements ownership; it never replaces it.
         if polyp_id is not None:
-            query += " WHERE polyp_id = ?"
-            parameters = (polyp_id,)
+            query += " AND polyp_id = ?"
+            parameters += (polyp_id,)
 
         query += " ORDER BY rowid"
 
         rows = connection.execute(query, parameters).fetchall()
         return [dict(row) for row in rows]
-
 
 def insert_user_row(user_id: str, username: str, password_hash: str):
     with database_connection() as connection:
@@ -268,7 +270,30 @@ def delete_auth_token(token_hash: str, user_id: str) -> bool:
 
         return cursor.rowcount > 0
 
+# Assign unowned development records to one explicitly chosen account.
+def assign_legacy_records(username: str):
+    with database_connection() as connection:
+        user = connection.execute("""
+            SELECT id FROM users WHERE username = ?
+        """, (username.lower(),)).fetchone()
+
+        if user is None:
+            raise ValueError("Register this account before assigning records.")
+
+        counts = {}
+
+        # These table names are fixed by the code, not supplied by a client.
+        for table in ("polyps", "focus_sessions"):
+            cursor = connection.execute(
+                f"UPDATE {table} SET owner_id = ? WHERE owner_id IS NULL",
+                (user["id"],),
+            )
+            counts[table] = cursor.rowcount
+
+        return counts
+
 # Allow this file to be run directly for setup.
 if __name__ == "__main__":
     initialize_database()
     print(f"Database ready at: {DATABASE_PATH}")
+

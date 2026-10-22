@@ -170,12 +170,18 @@ def delete_polyp(
     return Response(status_code=204)
 
 
+# Return only this account's session history.
 @app.get("/sessions")
-def get_sessions(polyp_id: UUID | None = None) -> list[FocusSession]:
-    # Pass the optional filter to the database helper.
+def get_sessions(
+    user: dict = Depends(get_current_user),
+    polyp_id: UUID | None = None,
+) -> list[FocusSession]:
     database_polyp_id = str(polyp_id) if polyp_id is not None else None
-    rows = fetch_focus_session_rows(database_polyp_id)
 
+    rows = fetch_focus_session_rows(
+        user["id"],
+        database_polyp_id,
+    )
     # Keep your existing model conversion and sorting below.
     # Translate database columns into API fields.
     sessions = [
@@ -197,8 +203,12 @@ def get_sessions(polyp_id: UUID | None = None) -> list[FocusSession]:
         reverse=True,
     )
 
+# Create a historical session owned by this account.
 @app.post("/sessions", status_code=201)
-def create_session(session: FocusSession) -> FocusSession:
+def create_session(
+    session: FocusSession,
+    user: dict = Depends(get_current_user),
+) -> FocusSession:
     # Preserve a readable historical task title.
     session.taskTitle = session.taskTitle.strip()
 
@@ -213,6 +223,7 @@ def create_session(session: FocusSession) -> FocusSession:
 
     try:
         insert_focus_session_row(
+            user["id"],
             str(session.id),
             str(session.polypID),
             session.taskTitle,
