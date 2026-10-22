@@ -1,7 +1,7 @@
 import sqlite3
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from pydantic import BaseModel, Field, SecretStr, field_validator
@@ -12,6 +12,7 @@ from database import (
     fetch_user_by_username,
     insert_auth_token,
     fetch_user_for_token,
+    delete_auth_token,
 )
 import hashlib
 import secrets
@@ -176,3 +177,18 @@ def get_my_account(
         id=user["id"],
         username=user["username"],
     )
+
+@router.post("/logout", status_code=204)
+def logout(
+    user: dict = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> Response:
+    # Authentication must succeed before this function runs.
+    token_hash = hashlib.sha256(
+        credentials.credentials.encode("utf-8")
+    ).hexdigest()
+
+    delete_auth_token(token_hash, user["id"])
+
+    # Successful logout has no response body.
+    return Response(status_code=204)

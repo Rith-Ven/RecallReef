@@ -236,6 +236,16 @@ def fetch_user_for_token(token_hash: str, current_time: int):
 
         return dict(row) if row is not None else None
 
+def delete_auth_token(token_hash: str, user_id: str) -> bool:
+    with database_connection() as connection:
+        # Revoke only this token belonging to this account.
+        cursor = connection.execute("""
+            DELETE FROM auth_tokens
+            WHERE token_hash = ? AND user_id = ?
+        """, (token_hash, user_id))
+
+        return cursor.rowcount > 0
+
 # Allow this file to be run directly for setup.
 if __name__ == "__main__":
     initialize_database()
